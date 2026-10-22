@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/docs/">
+    <File Path="docs/index.md" />
     <File Path="docs/configuration.md" />
     <File Path="docs/insite.md" />
     <File Path="docs/payments-and-bizum.md" />
@@ -8,6 +9,7 @@
     <File Path="docs/telemetry.md" />
     <File Path="docs/webhooks.md" />
     <File Path="docs/homologacion-produccion.md" />
+    <File Path="docs/.vitepress/config.mts" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/BetterRedsys.SampleApi/BetterRedsys.SampleApi.csproj" />
@@ -28,6 +30,7 @@
     <File Path="CONTRIBUTING.md" />
     <File Path="SECURITY.md" />
     <File Path="assets/icon.png" />
+    <File Path="package.json" />
   </Folder>
   <Folder Name="/solution-items/.github/">
     <File Path=".github/FUNDING.yml" />
@@ -36,5 +39,6 @@
     <File Path=".github/ISSUE_TEMPLATE/feature_request.md" />
     <File Path=".github/workflows/ci.yml" />
     <File Path=".github/workflows/publish.yml" />
+    <File Path=".github/workflows/deploy-docs.yml" />
   </Folder>
 </Solution>

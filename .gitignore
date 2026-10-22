@@ -86,3 +86,9 @@ appsettings.Local.json
 *.db
 *.db-shm
 *.db-wal
+
+## Documentation & Node.js
+node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+.DS_Store

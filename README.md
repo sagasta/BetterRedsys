@@ -5,6 +5,7 @@
 # BetterRedsys
 
 [![CI](https://github.com/sagasta/BetterRedsys/actions/workflows/ci.yml/badge.svg)](https://github.com/sagasta/BetterRedsys/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://sagasta.github.io/BetterRedsys/)
 [![NuGet](https://img.shields.io/nuget/v/BetterRedsys.svg)](https://www.nuget.org/packages/BetterRedsys/)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/)
 [![Native AOT](https://img.shields.io/badge/Native%20AOT-Ready-brightgreen)](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/)
@@ -150,7 +151,9 @@ app.Run();
 
 ## Documentación Completa
 
-Para guías detalladas y ejemplos de cada funcionalidad, consulta la documentación en la carpeta `docs/`:
+> 🌐 **Sitio web oficial interactivo con buscador:** [https://sagasta.github.io/BetterRedsys/](https://sagasta.github.io/BetterRedsys/)
+
+Para guías detalladas y ejemplos de cada funcionalidad, consulta la web o la carpeta `docs/`:
 
 * [Configuración y Opciones](docs/configuration.md): Presets de test/producción, `appsettings.json`, validación temprana y builder pattern.
 * [Pagos y Bizum](docs/payments-and-bizum.md): Creación de pagos, frontends desacoplados (React/Vue), redirección HTML, reglas de Bizum y 3DS v2.
