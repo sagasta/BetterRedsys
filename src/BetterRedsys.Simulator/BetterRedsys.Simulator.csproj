@@ -10,22 +10,13 @@
 
     <!-- NuGet Metadata -->
     <PackageId>BetterRedsys.Simulator</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>Jose Sagasta</Authors>
-    <Company>BetterRedsys</Company>
     <Title>BetterRedsys.Simulator - Interactive In-Memory Redsys &amp; Bizum Simulator for ASP.NET Core</Title>
     <Description>Interactive in-memory local simulator, UI sandbox, and mock server for Redsys and Bizum payment gateway in ASP.NET Core. Facilitates local end-to-end development, webhook dispatching, and direct REST operation simulation without ngrok or real bank connectivity.</Description>
     <PackageTags>redsys;bizum;simulator;mock;testing;aspnetcore;payments;tpv;aot</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/BetterRedsys/BetterRedsys</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/BetterRedsys/BetterRedsys</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageIcon>icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <!-- Build & Packaging Options -->
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
@@ -50,7 +41,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\BetterRedsys\icon.png" Pack="true" PackagePath="\" Link="icon.png" />
     <None Include="..\..\README.md" Pack="true" PackagePath="\" Condition="Exists('..\..\README.md')" />
   </ItemGroup>
 

@@ -1,25 +1,88 @@
-## .NET Core & Visual Studio
-bin/
-obj/
+## Build & Compilation Outputs
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+dist/
+
+## Visual Studio
+.vs/
 *.user
 *.userosscache
+*.sln.docstates
 *.suo
 *.userprefs
-.vs/
+*.launch
+*.psess
+*.vsp
+*.vspx
+*.sap
+Generated_Files/
+
+## Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+## JetBrains Rider & Resharper
 .idea/
-.vscode/
+*.DotSettings.user
+_ReSharper*/
+
+## NuGet & Package Artifacts
 *.nupkg
 *.snupkg
+**/packages/
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
 artifacts/
-!src/BetterRedsys/bin/Release/*.nupkg
+nupkgs/
 
-## Test Results
-TestResults/
-*.trx
-coverage/
+## Testing & Code Coverage
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.visualstudio.trx
+coveragereport/
+coverage.cobertura.xml
+*.coverage
+*.coveragexml
 
-## OS generated
+## Operating System Specific
+# Windows
 Thumbs.db
+Thumbs.db:encryptable
 ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
 Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+## Environment & Secrets
+.env
+.env.*
+*.local
+appsettings.*.local.json
+appsettings.Local.json
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal

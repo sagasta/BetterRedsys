@@ -10,22 +10,13 @@
 
     <!-- NuGet Metadata -->
     <PackageId>BetterRedsys</PackageId>
-    <Version>1.0.0</Version>
-    <Authors>Jose Sagasta</Authors>
-    <Company>BetterRedsys</Company>
     <Title>BetterRedsys - Modern Redsys &amp; Bizum Payment Gateway for .NET 10 and ASP.NET Core</Title>
     <Description>Modern, strongly-typed, high-performance, and Native AOT library for Redsys and Bizum payment gateway in ASP.NET Core and .NET 10. Designed for both traditional backends and decoupled architectures (React, Next.js, Blazor, Vue, Mobile). Librería moderna de pagos Redsys y Bizum.</Description>
     <PackageTags>redsys;bizum;tpv;pagos;payments;payment-gateway;csharp;dotnet;aspnetcore;tpv-virtual;aot</PackageTags>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/BetterRedsys/BetterRedsys</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/BetterRedsys/BetterRedsys</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>icon.png</PackageIcon>
     
     <!-- Build & Packaging Options -->
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
@@ -42,7 +33,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="icon.png" Pack="true" PackagePath="\" />
     <None Include="..\..\README.md" Pack="true" PackagePath="\" Condition="Exists('..\..\README.md')" />
   </ItemGroup>
 
