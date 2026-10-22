@@ -47,10 +47,16 @@ jobs:
         if: "${{ github.event.inputs.version != '' }}"
         run: dotnet pack BetterRedsys.slnx -c Release --no-build /p:Version=${{ github.event.inputs.version }} -o ./nupkgs
 
+      - name: NuGet Login (Trusted Publishing via OIDC)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
       - name: Push to NuGet.org
         run: >
           dotnet nuget push "./nupkgs/*.nupkg"
-          --api-key "${{ secrets.NUGET_API_KEY }}"
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
           --source https://api.nuget.org/v3/index.json
           --skip-duplicate
 
