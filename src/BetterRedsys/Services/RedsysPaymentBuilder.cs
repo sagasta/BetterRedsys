@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using BetterRedsys.Configuration;
 using BetterRedsys.Cryptography;
+using BetterRedsys.Diagnostics;
 using BetterRedsys.Models;
 
 namespace BetterRedsys.Services;
@@ -288,6 +289,18 @@ public sealed class RedsysPaymentBuilder
     public RedsysPaymentResponseData ToFormData()
     {
         _options.Validate();
+
+        using var activity = RedsysTelemetry.ActivitySource.StartActivity("Redsys.CreatePayment");
+        activity?.SetTag("redsys.order", _order);
+        activity?.SetTag("redsys.amount", _amount.ToDecimal());
+        activity?.SetTag("redsys.currency", _currency ?? _options.Currency);
+        activity?.SetTag("redsys.fuc", _options.Fuc);
+        activity?.SetTag("redsys.terminal", _terminal ?? _options.Terminal);
+        activity?.SetTag("redsys.transaction_type", _transactionType ?? _options.DefaultTransactionType);
+
+        RedsysTelemetry.PaymentsCreatedCounter.Add(1,
+            new KeyValuePair<string, object?>("currency", _currency ?? _options.Currency),
+            new KeyValuePair<string, object?>("transaction_type", _transactionType ?? _options.DefaultTransactionType));
 
         var dto = new RedsysMerchantParametersDto
         {

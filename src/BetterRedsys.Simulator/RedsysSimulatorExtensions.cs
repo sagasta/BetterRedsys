@@ -45,6 +45,21 @@ public static class RedsysSimulatorExtensions
     }
 
     /// <summary>
+    /// Registers the BetterRedsys in-memory simulator services from an <see cref="IBetterRedsysBuilder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IBetterRedsysBuilder"/> instance.</param>
+    /// <param name="configure">Optional configuration callback for simulator options.</param>
+    /// <returns>The builder instance for chaining.</returns>
+    public static IBetterRedsysBuilder AddSimulator(
+        this IBetterRedsysBuilder builder,
+        Action<RedsysSimulatorOptions>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Services.AddBetterRedsysSimulator(configure);
+        return builder;
+    }
+
+    /// <summary>
     /// Enables the interactive Redsys simulator middleware to intercept and simulate payment flows locally without ngrok or real bank connectivity.
     /// Recommended to run conditionally under <c>if (app.Environment.IsDevelopment())</c>.
     /// </summary>

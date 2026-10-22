@@ -1,21 +1,26 @@
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using BetterRedsys.Configuration;
 using BetterRedsys.Cryptography;
+using BetterRedsys.Diagnostics;
 using BetterRedsys.Models;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace BetterRedsys.Services;
 
 /// <summary>
 /// Central client for creating and validating Redsys and Bizum payments as well as executing server-to-server REST operations.
+/// Fully instrumented with OpenTelemetry distributed tracing, metrics, and structured audit logs.
 /// </summary>
 public sealed class RedsysClient(
     IOptions<RedsysOptions> options,
     IRedsysCryptoService cryptoService,
-    IHttpClientFactory? httpClientFactory = null) : IRedsysClient
+    IHttpClientFactory? httpClientFactory = null,
+    ILogger<RedsysClient>? logger = null) : IRedsysClient
 {
-    private readonly RedsysOptions _options = options.Value ?? throw new ArgumentNullException(nameof(options));
+    private readonly RedsysOptions _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
     private readonly IRedsysCryptoService _cryptoService = cryptoService ?? throw new ArgumentNullException(nameof(cryptoService));
 
     /// <inheritdoc />
@@ -45,15 +50,19 @@ public sealed class RedsysClient(
         notification = null;
         errorMessage = null;
 
+        using var activity = RedsysTelemetry.ActivitySource.StartActivity("Redsys.VerifyWebhook");
+
         if (string.IsNullOrWhiteSpace(merchantParametersBase64))
         {
             errorMessage = "The Ds_MerchantParameters parameter is missing or empty.";
+            activity?.SetTag("redsys.error", errorMessage);
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(signature))
         {
             errorMessage = "The Ds_Signature parameter is missing or empty.";
+            activity?.SetTag("redsys.error", errorMessage);
             return false;
         }
 
@@ -69,6 +78,7 @@ public sealed class RedsysClient(
             if (dto is null || string.IsNullOrWhiteSpace(dto.Order))
             {
                 errorMessage = "Could not extract the order identifier (Ds_Order) from the received parameters.";
+                activity?.SetTag("redsys.error", errorMessage);
                 return false;
             }
 
@@ -82,15 +92,41 @@ public sealed class RedsysClient(
             if (!isValid)
             {
                 errorMessage = "The cryptographic signature (Ds_Signature) does not match the received parameters.";
+                activity?.SetTag("redsys.is_valid", false);
+                activity?.SetTag("redsys.order", dto.Order);
+
+                RedsysTelemetry.WebhooksReceivedCounter.Add(1,
+                    new KeyValuePair<string, object?>("status", "invalid_signature"),
+                    new KeyValuePair<string, object?>("is_bizum", false));
+
+                logger?.LogWarning("BetterRedsys: Potential tampering detected. Cryptographic signature mismatch for order {Order}.", dto.Order);
                 return false;
             }
 
             notification = RedsysNotification.Create(dto, merchantParametersBase64, signature);
+
+            activity?.SetTag("redsys.is_valid", true);
+            activity?.SetTag("redsys.order", notification.Order);
+            activity?.SetTag("redsys.amount", notification.Amount.ToDecimal());
+            activity?.SetTag("redsys.response_code", notification.ResponseCode);
+            activity?.SetTag("redsys.is_success", notification.IsSuccess);
+            activity?.SetTag("redsys.is_bizum", notification.IsBizum);
+
+            RedsysTelemetry.WebhooksReceivedCounter.Add(1,
+                new KeyValuePair<string, object?>("status", notification.IsSuccess ? "authorized" : "rejected"),
+                new KeyValuePair<string, object?>("is_bizum", notification.IsBizum));
+
+            logger?.LogInformation(
+                "BetterRedsys: Webhook verified for order {Order}. Response: {ResponseCode} ({Description}), Bizum: {IsBizum}.",
+                notification.Order, notification.ResponseCode, notification.ResponseDescription, notification.IsBizum);
+
             return true;
         }
-        catch
+        catch (Exception ex)
         {
             errorMessage = "The notification payload is malformed or corrupted.";
+            activity?.SetTag("redsys.error", errorMessage);
+            logger?.LogError(ex, "BetterRedsys: Failed to decode incoming notification.");
             return false;
         }
     }
@@ -202,51 +238,105 @@ public sealed class RedsysClient(
         _options.Validate();
         RedsysPaymentBuilder.ValidateOrder(order);
 
-        var merchantDto = new RedsysMerchantParametersDto
+        var opName = transactionType switch
         {
-            Amount = amount.ToRedsysString(),
-            Order = order,
-            MerchantCode = _options.Fuc,
-            Currency = _options.Currency,
-            TransactionType = transactionType,
-            Terminal = _options.Terminal,
-            Identifier = identifier,
-            IdOper = idOper,
-            CofIni = cofIni,
-            CofType = cofType
+            "3" => "refund",
+            "2" => "preauth_confirm",
+            "9" => "preauth_cancel",
+            "J" => "order_query",
+            _ => !string.IsNullOrWhiteSpace(idOper) ? "insite_auth" : "stored_card_charge"
         };
 
-        var jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(merchantDto, RedsysJsonContext.Default.RedsysMerchantParametersDto);
-        var merchantParametersBase64 = Convert.ToBase64String(jsonUtf8Bytes);
+        using var activity = RedsysTelemetry.ActivitySource.StartActivity($"Redsys.Rest.{opName}");
+        activity?.SetTag("redsys.order", order);
+        activity?.SetTag("redsys.operation", opName);
+        activity?.SetTag("redsys.amount", amount.ToDecimal());
+        activity?.SetTag("redsys.currency", _options.Currency);
 
-        var diversifiedKey = _cryptoService.DiversifyKey(_options.SecretKey, order);
-        var signature = _cryptoService.ComputeSignature(merchantParametersBase64, diversifiedKey);
+        logger?.LogInformation("BetterRedsys: Sending S2S REST {Operation} request for order {Order}, Amount {Amount}.", opName, order, amount.ToDisplayString());
 
-        var requestDto = new RedsysRestRequestDto
+        var stopwatch = Stopwatch.StartNew();
+
+        try
         {
-            SignatureVersion = "HMAC_SHA256_V1",
-            MerchantParameters = merchantParametersBase64,
-            Signature = signature
-        };
+            var merchantDto = new RedsysMerchantParametersDto
+            {
+                Amount = amount.ToRedsysString(),
+                Order = order,
+                MerchantCode = _options.Fuc,
+                Currency = _options.Currency,
+                TransactionType = transactionType,
+                Terminal = _options.Terminal,
+                Identifier = identifier,
+                IdOper = idOper,
+                CofIni = cofIni,
+                CofType = cofType
+            };
 
-        var requestBytes = JsonSerializer.SerializeToUtf8Bytes(requestDto, RedsysJsonContext.Default.RedsysRestRequestDto);
+            var jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(merchantDto, RedsysJsonContext.Default.RedsysMerchantParametersDto);
+            var merchantParametersBase64 = Convert.ToBase64String(jsonUtf8Bytes);
 
-        var restUrl = _options.GetRestGatewayUrl();
-        using var httpClient = httpClientFactory?.CreateClient("BetterRedsys") ?? new HttpClient();
-        using var content = new ByteArrayContent(requestBytes);
-        content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            var diversifiedKey = _cryptoService.DiversifyKey(_options.SecretKey, order);
+            var signature = _cryptoService.ComputeSignature(merchantParametersBase64, diversifiedKey);
 
-        using var response = await httpClient.PostAsync(restUrl, content, cancellationToken);
-        var responseBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            var requestDto = new RedsysRestRequestDto
+            {
+                SignatureVersion = "HMAC_SHA256_V1",
+                MerchantParameters = merchantParametersBase64,
+                Signature = signature
+            };
 
-        var restResponse = JsonSerializer.Deserialize(responseBytes, RedsysJsonContext.Default.RedsysRestResponseDto);
+            var requestBytes = JsonSerializer.SerializeToUtf8Bytes(requestDto, RedsysJsonContext.Default.RedsysRestRequestDto);
 
-        if (restResponse is null || string.IsNullOrWhiteSpace(restResponse.MerchantParameters) || string.IsNullOrWhiteSpace(restResponse.Signature))
-        {
-            var err = restResponse?.ErrorCode ?? "Empty or invalid response from Redsys REST endpoint.";
-            throw new InvalidOperationException($"Redsys REST operation failed: {err}");
+            var restUrl = _options.GetRestGatewayUrl();
+            using var httpClient = httpClientFactory?.CreateClient("BetterRedsys") ?? new HttpClient();
+            using var content = new ByteArrayContent(requestBytes);
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+            using var response = await httpClient.PostAsync(restUrl, content, cancellationToken);
+            var responseBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+
+            var restResponse = JsonSerializer.Deserialize(responseBytes, RedsysJsonContext.Default.RedsysRestResponseDto);
+
+            if (restResponse is null || string.IsNullOrWhiteSpace(restResponse.MerchantParameters) || string.IsNullOrWhiteSpace(restResponse.Signature))
+            {
+                var err = restResponse?.ErrorCode ?? "Empty or invalid response from Redsys REST endpoint.";
+                throw new InvalidOperationException($"Redsys REST operation failed: {err}");
+            }
+
+            var notification = DecodeNotification(restResponse.MerchantParameters, restResponse.Signature);
+
+            stopwatch.Stop();
+            RedsysTelemetry.S2sDurationHistogram.Record(stopwatch.ElapsedMilliseconds,
+                new KeyValuePair<string, object?>("operation", opName));
+
+            RedsysTelemetry.S2sOperationsCounter.Add(1,
+                new KeyValuePair<string, object?>("operation", opName),
+                new KeyValuePair<string, object?>("is_success", notification.IsSuccess),
+                new KeyValuePair<string, object?>("response_code", notification.ResponseCode));
+
+            activity?.SetTag("redsys.response_code", notification.ResponseCode);
+            activity?.SetTag("redsys.is_success", notification.IsSuccess);
+
+            logger?.LogInformation("BetterRedsys: S2S REST {Operation} completed for order {Order} in {ElapsedMs}ms. ResponseCode: {ResponseCode}.",
+                opName, order, stopwatch.ElapsedMilliseconds, notification.ResponseCode);
+
+            return notification;
         }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            RedsysTelemetry.S2sDurationHistogram.Record(stopwatch.ElapsedMilliseconds,
+                new KeyValuePair<string, object?>("operation", opName));
 
-        return DecodeNotification(restResponse.MerchantParameters, restResponse.Signature);
+            RedsysTelemetry.S2sOperationsCounter.Add(1,
+                new KeyValuePair<string, object?>("operation", opName),
+                new KeyValuePair<string, object?>("is_success", false),
+                new KeyValuePair<string, object?>("response_code", "error"));
+
+            activity?.SetTag("redsys.is_success", false);
+            logger?.LogError(ex, "BetterRedsys: S2S REST {Operation} failed for order {Order}.", opName, order);
+            throw;
+        }
     }
 }

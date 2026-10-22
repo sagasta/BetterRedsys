@@ -98,6 +98,109 @@ public sealed class RedsysOptions
     }
 
     /// <summary>
+    /// Configures the merchant credentials for the official Redsys Production environment (sis.redsys.es).
+    /// </summary>
+    /// <param name="fuc">Merchant FUC code assigned by the acquiring bank.</param>
+    /// <param name="terminal">Terminal number assigned by the acquiring bank.</param>
+    /// <param name="secretKey">Secret Base64 signature key for production.</param>
+    /// <returns>This options instance for fluent chaining.</returns>
+    public RedsysOptions UseProduction(string fuc, string terminal, string secretKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fuc);
+        ArgumentException.ThrowIfNullOrWhiteSpace(terminal);
+        ArgumentException.ThrowIfNullOrWhiteSpace(secretKey);
+
+        Fuc = fuc;
+        Terminal = terminal;
+        SecretKey = secretKey;
+        IsProduction = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the merchant credentials for the official Redsys Test/Sandbox environment (sis-t.redsys.es:25443).
+    /// </summary>
+    /// <param name="fuc">Merchant FUC code assigned for testing.</param>
+    /// <param name="terminal">Terminal number assigned for testing.</param>
+    /// <param name="secretKey">Secret Base64 signature key for testing.</param>
+    /// <returns>This options instance for fluent chaining.</returns>
+    public RedsysOptions UseTest(string fuc, string terminal, string secretKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fuc);
+        ArgumentException.ThrowIfNullOrWhiteSpace(terminal);
+        ArgumentException.ThrowIfNullOrWhiteSpace(secretKey);
+
+        Fuc = fuc;
+        Terminal = terminal;
+        SecretKey = secretKey;
+        IsProduction = false;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures Euro ("978") as the active currency.
+    /// </summary>
+    /// <returns>This options instance for fluent chaining.</returns>
+    public RedsysOptions WithEuros()
+    {
+        Currency = "978";
+        return this;
+    }
+
+    /// <summary>
+    /// Configures a specific ISO-4217 numeric currency code (e.g. "978" for EUR, "840" for USD, "826" for GBP).
+    /// </summary>
+    /// <param name="currencyCode">ISO-4217 currency code.</param>
+    /// <returns>This options instance for fluent chaining.</returns>
+    public RedsysOptions WithCurrency(string currencyCode)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currencyCode);
+        Currency = currencyCode;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the default consumer language.
+    /// </summary>
+    /// <param name="language">The default language.</param>
+    /// <returns>This options instance for fluent chaining.</returns>
+    public RedsysOptions WithDefaultLanguage(RedsysLanguage language)
+    {
+        DefaultLanguage = language;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures webhook and customer redirection URLs.
+    /// </summary>
+    /// <param name="notificationUrl">Online server-to-server webhook notification URL (MerchantUrl).</param>
+    /// <param name="okUrl">Optional customer return URL upon successful payment (UrlOk).</param>
+    /// <param name="koUrl">Optional customer return URL upon canceled or rejected payment (UrlKo).</param>
+    /// <returns>This options instance for fluent chaining.</returns>
+    public RedsysOptions WithWebhooks(string notificationUrl, string? okUrl = null, string? koUrl = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(notificationUrl);
+        MerchantUrl = notificationUrl;
+        UrlOk = okUrl;
+        UrlKo = koUrl;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures custom gateway endpoint URLs (for reverse proxies or test environments).
+    /// </summary>
+    /// <param name="paymentUrl">Custom payment gateway URL.</param>
+    /// <param name="restUrl">Optional custom REST gateway URL.</param>
+    /// <returns>This options instance for fluent chaining.</returns>
+    public RedsysOptions WithCustomGateway(string paymentUrl, string? restUrl = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(paymentUrl);
+        CustomGatewayUrl = paymentUrl;
+        CustomRestGatewayUrl = restUrl;
+        return this;
+    }
+
+    /// <summary>
     /// Validates that all required configuration values are provided.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown if any mandatory parameter is missing or invalid.</exception>

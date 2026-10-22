@@ -6,27 +6,25 @@ using BetterRedsys.Simulator;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configuración del servicio BetterRedsys (Core puro)
-builder.Services.AddBetterRedsys(options =>
+// 1. Configuración moderna con IBetterRedsysBuilder, ValidateOnStart y métodos fluidos
+var redsysBuilder = builder.Services.AddBetterRedsys(options =>
 {
-    options.Fuc = builder.Configuration["Redsys:Fuc"] ?? "999008881";
-    options.Terminal = builder.Configuration["Redsys:Terminal"] ?? "1";
-    options.SecretKey = builder.Configuration["Redsys:SecretKey"] ?? "sq7HjrUOBfKmC576ILgskD5srURiUz6U";
-    options.Currency = "978"; // EUR
-    options.MerchantUrl = "/api/pagos/webhook";
-    options.UrlOk = "/pedido-exitoso";
-    options.UrlKo = "/pedido-cancelado";
-    options.IsProduction = false;
-});
+    options.UseTest(
+        fuc: builder.Configuration["Redsys:Fuc"] ?? "999008881",
+        terminal: builder.Configuration["Redsys:Terminal"] ?? "1",
+        secretKey: builder.Configuration["Redsys:SecretKey"] ?? "sq7HjrUOBfKmC576ILgskD5srURiUz6U")
+    .WithEuros()
+    .WithWebhooks(
+        notificationUrl: "/api/pagos/webhook",
+        okUrl: "/pedido-exitoso",
+        koUrl: "/pedido-cancelado");
+})
+.AddHealthCheck(); // Registra el HealthCheck mediante IBetterRedsysBuilder
 
-// 2. Health Checks de Redsys
-builder.Services.AddHealthChecks()
-    .AddRedsys();
-
-// 3. Activa el simulador desacoplado en entorno de desarrollo local
+// 2. Activa el simulador desacoplado en entorno de desarrollo local
 if (builder.Environment.IsDevelopment())
 {
-    builder.Services.AddBetterRedsysSimulator();
+    redsysBuilder.AddSimulator();
 }
 
 var app = builder.Build();

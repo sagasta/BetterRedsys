@@ -44,7 +44,10 @@ Modern, strongly-typed, high-performance, and **Native AOT Ready** Redsys and Bi
 - **🛡️ 3D Secure v2 & PSD2 SCA (EMV3DS):**
   - Strongly-typed `RedsysEmv3Ds` context and fluent exemption configuration (`.With3DsExemption()`).
 - **🩺 ASP.NET Core Health Checks:**
-  - Built-in `services.AddHealthChecks().AddRedsys()` probe verifying live gateway connectivity.
+  - Built-in `builder.AddHealthCheck()` or `services.AddHealthChecks().AddRedsys()` probe verifying live gateway connectivity.
+- **📊 OpenTelemetry Distributed Tracing & Metrics:**
+  - Zero-dependency runtime instrumentation via `ActivitySource("BetterRedsys")` and `Meter("BetterRedsys")`.
+  - Tracks operations, latencies, success rates, and structured audit logs.
 - **🧪 BetterRedsys.Simulator (Separate NuGet Package):**
   - In-memory local payment simulation (`app.UseRedsysSimulator()`).
   - Interactive bilingual UI to simulate approvals, insufficient funds, expired cards, 3DS failures, and cancelations.
@@ -56,7 +59,7 @@ Modern, strongly-typed, high-performance, and **Native AOT Ready** Redsys and Bi
 ## 📦 Installation / Instalación
 
 ```bash
-# Core payment client & cryptographic verification
+# Core payment client, cryptography & OpenTelemetry
 dotnet add package BetterRedsys
 
 # Optional: In-memory local payment & REST gateway simulator for development
@@ -67,7 +70,7 @@ dotnet add package BetterRedsys.Simulator
 
 ## 🛠️ Quick Start / Inicio Rápido
 
-### 1. Dependency Injection (`Program.cs`)
+### 1. Fluent Dependency Injection (`Program.cs`)
 
 ```csharp
 using BetterRedsys.Configuration;
@@ -78,23 +81,19 @@ using BetterRedsys.Simulator; // When using BetterRedsys.Simulator
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddBetterRedsys(options =>
+// Fluent configuration with eager startup validation (ValidateOnStart)
+var redsysBuilder = builder.Services.AddBetterRedsys(options =>
 {
-    options.Fuc = "999008881";
-    options.Terminal = "1";
-    options.SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U";
-    options.Currency = "978"; // EUR
-    options.DefaultLanguage = RedsysLanguage.English; // Default language
-    options.MerchantUrl = "/api/payments/webhook";
-    options.UrlOk = "/checkout/success";
-    options.UrlKo = "/checkout/cancel";
-    options.IsProduction = false;
-});
+    options.UseTest(fuc: "999008881", terminal: "1", secretKey: "sq7HjrUOBfKmC576ILgskD5srURiUz6U")
+           .WithEuros()
+           .WithWebhooks(notificationUrl: "/api/payments/webhook", okUrl: "/checkout/success", koUrl: "/checkout/cancel");
+})
+.AddHealthCheck(); // Built-in Health Check
 
 // Optional: Enable simulator in development
 if (builder.Environment.IsDevelopment())
 {
-    builder.Services.AddBetterRedsysSimulator();
+    redsysBuilder.AddSimulator();
 }
 
 var app = builder.Build();

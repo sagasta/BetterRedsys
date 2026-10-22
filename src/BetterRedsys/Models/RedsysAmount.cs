@@ -21,6 +21,11 @@ public readonly record struct RedsysAmount : IComparable<RedsysAmount>, ICompara
     public decimal Euros => Cents / 100m;
 
     /// <summary>
+    /// Converts this amount to a decimal in the main currency unit.
+    /// </summary>
+    public decimal ToDecimal() => Euros;
+
+    /// <summary>
     /// Initializes a new instance of <see cref="RedsysAmount"/> from a total number of cents.
     /// </summary>
     /// <param name="cents">Total cents (must be non-negative).</param>
