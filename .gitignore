@@ -1,0 +1,24 @@
+## .NET Core & Visual Studio
+bin/
+obj/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+.vs/
+.idea/
+.vscode/
+*.nupkg
+*.snupkg
+!src/BetterRedsys/bin/Release/*.nupkg
+
+## Test Results
+TestResults/
+*.trx
+coverage/
+
+## OS generated
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store

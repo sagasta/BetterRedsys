@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/BetterRedsys.SampleApi/BetterRedsys.SampleApi.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/BetterRedsys/BetterRedsys.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BetterRedsys.Tests/BetterRedsys.Tests.csproj" />
+  </Folder>
+</Solution>

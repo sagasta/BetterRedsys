@@ -1,0 +1,43 @@
+name: CI / CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  release:
+    types: [ "published" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET 10
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore BetterRedsys.sln
+
+    - name: Build Solution (Release)
+      run: dotnet build BetterRedsys.sln -c Release --no-restore /p:TreatWarningsAsErrors=true
+
+    - name: Run Tests
+      run: dotnet test BetterRedsys.sln -c Release --no-build --verbosity normal
+
+    - name: Pack NuGet
+      run: dotnet pack src/BetterRedsys/BetterRedsys.csproj -c Release --no-build -o ./artifacts
+
+    - name: Upload NuGet Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-packages
+        path: ./artifacts/*.nupkg
+
+    - name: Publish to NuGet.org (on Release)
+      if: github.event_name == 'release' && startsWith(github.ref, 'refs/tags/v')
+      run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
