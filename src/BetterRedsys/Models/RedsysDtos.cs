@@ -78,6 +78,14 @@ internal sealed class RedsysMerchantParametersDto
     [JsonPropertyName("DS_MERCHANT_COF_TYPE")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? CofType { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_IDOPER")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IdOper { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_EMV3DS")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public RedsysEmv3Ds? Emv3Ds { get; set; }
 }
 
 /// <summary>

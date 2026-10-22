@@ -154,11 +154,47 @@ public sealed class RedsysClient(
             cancellationToken: cancellationToken);
     }
 
+    /// <inheritdoc />
+    public Task<RedsysNotification> ExecuteInsitePaymentAsync(
+        string order,
+        RedsysAmount amount,
+        string idOper,
+        RedsysCofType? registerCardOnFile = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(idOper);
+
+        string? cofIni = registerCardOnFile.HasValue ? "S" : null;
+        string? cofType = registerCardOnFile?.ToRedsysCode();
+
+        return SendRestRequestAsync(
+            order: order,
+            amount: amount,
+            transactionType: "0", // 0 = Standard Authorization
+            idOper: idOper,
+            cofIni: cofIni,
+            cofType: cofType,
+            cancellationToken: cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<RedsysNotification> QueryOrderAsync(
+        string order,
+        CancellationToken cancellationToken = default)
+    {
+        return SendRestRequestAsync(
+            order: order,
+            amount: 0.00m,
+            transactionType: "J", // J = Consultation / Consulta de Operación
+            cancellationToken: cancellationToken);
+    }
+
     private async Task<RedsysNotification> SendRestRequestAsync(
         string order,
         RedsysAmount amount,
         string transactionType,
         string? identifier = null,
+        string? idOper = null,
         string? cofIni = null,
         string? cofType = null,
         CancellationToken cancellationToken = default)
@@ -175,6 +211,7 @@ public sealed class RedsysClient(
             TransactionType = transactionType,
             Terminal = _options.Terminal,
             Identifier = identifier,
+            IdOper = idOper,
             CofIni = cofIni,
             CofType = cofType
         };

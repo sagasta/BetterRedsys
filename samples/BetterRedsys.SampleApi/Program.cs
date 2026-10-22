@@ -19,7 +19,11 @@ builder.Services.AddBetterRedsys(options =>
     options.IsProduction = false;
 });
 
-// 2. Activa el simulador desacoplado en entorno de desarrollo local
+// 2. Health Checks de Redsys
+builder.Services.AddHealthChecks()
+    .AddRedsys();
+
+// 3. Activa el simulador desacoplado en entorno de desarrollo local
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddBetterRedsysSimulator();
@@ -27,7 +31,9 @@ if (builder.Environment.IsDevelopment())
 
 var app = builder.Build();
 
-// 2. Middleware interactivo Simulator (activo en desarrollo)
+app.MapHealthChecks("/health");
+
+// 4. Middleware interactivo Simulator (activo en desarrollo)
 if (app.Environment.IsDevelopment())
 {
     app.UseRedsysSimulator();
@@ -90,6 +96,36 @@ app.MapPost("/api/pedidos/{order}/devolver", async (string order, RefundRequest 
         : Results.BadRequest(new { success = false, code = response.ResponseCode, error = response.ResponseDescription });
 });
 
+// 7. Endpoint para cobro directo InSite (iframe embebido sin redirección externa)
+app.MapPost("/api/checkout/insite", async (InsitePaymentRequest request, IRedsysClient redsysClient) =>
+{
+    var response = await redsysClient.ExecuteInsitePaymentAsync(
+        order: request.Order,
+        amount: request.Amount,
+        idOper: request.IdOper,
+        registerCardOnFile: RedsysCofType.Recurring
+    );
+
+    return response.IsSuccess
+        ? Results.Ok(new { success = true, order = response.Order, authCode = response.AuthorisationCode, token = response.MerchantIdentifier })
+        : Results.BadRequest(new { success = false, code = response.ResponseCode, error = response.ResponseDescription });
+});
+
+// 8. Endpoint para consultar el estado de una operación (REST Consulta tipo J)
+app.MapGet("/api/pedidos/{order}/consulta", async (string order, IRedsysClient redsysClient) =>
+{
+    var response = await redsysClient.QueryOrderAsync(order);
+
+    return Results.Ok(new
+    {
+        order = response.Order,
+        isSuccess = response.IsSuccess,
+        responseCode = response.ResponseCode,
+        description = response.ResponseDescription,
+        authCode = response.AuthorisationCode
+    });
+});
+
 // 7. Endpoint para redirección directa clásica desde el servidor
 // Devuelve una página HTML autoejecutable que envía el formulario automáticamente al cargar
 app.MapGet("/checkout/pagar/{order}", (string order, IRedsysClient redsysClient) =>
@@ -144,3 +180,4 @@ public record CheckoutRequest(string Order, decimal Amount, string? Description)
 public record SubscriptionRequest(string Order, decimal FirstMonthAmount, string PlanName);
 public record RecurringChargeRequest(string Order, decimal Amount, string CardToken, string CardExpiry, string PlanName);
 public record RefundRequest(decimal Amount, string? Reason);
+public record InsitePaymentRequest(string Order, decimal Amount, string IdOper);

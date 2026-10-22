@@ -14,4 +14,6 @@ namespace BetterRedsys.Models;
 [JsonSerializable(typeof(RedsysNotificationParametersDto))]
 [JsonSerializable(typeof(RedsysRestRequestDto))]
 [JsonSerializable(typeof(RedsysRestResponseDto))]
+[JsonSerializable(typeof(RedsysEmv3Ds))]
+[JsonSerializable(typeof(RedsysPhone))]
 internal sealed partial class RedsysJsonContext : JsonSerializerContext;

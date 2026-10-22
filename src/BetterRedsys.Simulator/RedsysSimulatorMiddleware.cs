@@ -115,13 +115,21 @@ public sealed class RedsysSimulatorMiddleware
             }
 
             // Determine response code based on transaction type
+            // Determine response code based on transaction type
             var responseCode = merchantDto.TransactionType switch
             {
                 "3" => "0900", // Refund approved
                 "2" => "0000", // Preauthorization confirmed
                 "9" => "0400", // Preauthorization canceled
-                _ => "0000"    // Default direct authorization
+                "J" => "0000", // Consultation / Query approved
+                _ => "0000"    // Default direct authorization (standard, InSite, COF)
             };
+
+            string? token = merchantDto.Identifier;
+            if (string.IsNullOrWhiteSpace(token) && (merchantDto.CofIni == "S" || !string.IsNullOrWhiteSpace(merchantDto.IdOper)))
+            {
+                token = "TOK_SIM_123456789";
+            }
 
             var notificationDto = new SimulatorRestNotificationDto
             {
@@ -139,7 +147,7 @@ public sealed class RedsysSimulatorMiddleware
                 CardCountry = "724",
                 CardType = "D",
                 CardBrand = "1",
-                MerchantIdentifier = merchantDto.Identifier ?? "TOK_MOCK_123456789"
+                MerchantIdentifier = token
             };
 
             var notifBytes = JsonSerializer.SerializeToUtf8Bytes(notificationDto, SimulatorRestJsonContext.Default.SimulatorRestNotificationDto);
@@ -793,6 +801,12 @@ internal sealed class SimulatorRestMerchantDto
 
     [JsonPropertyName("DS_MERCHANT_IDENTIFIER")]
     public string? Identifier { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_COF_INI")]
+    public string? CofIni { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_IDOPER")]
+    public string? IdOper { get; set; }
 }
 
 /// <summary>

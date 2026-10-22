@@ -36,11 +36,20 @@ Modern, strongly-typed, high-performance, and **Native AOT Ready** Redsys and Bi
 - **🎯 Minimal APIs Webhook Handler:**
   - `app.MapRedsysWebhook("/api/payments/webhook", async (RedsysNotification notification) => ...)`
   - Automatic cryptographic verification before invoking business logic. Responds with `400 Bad Request` if tampered.
+- **💳 S2S REST Operations & Redsys InSite:**
+  - Tokenized recurring / 1-click charges (`ExecuteStoredCardChargeAsync`).
+  - Direct refunds & preauthorizations (`ExecuteRefundAsync`, `ConfirmPreauthorizationAsync`, `CancelPreauthorizationAsync`).
+  - Embedded iframe payments without external redirection via Redsys InSite (`ExecuteInsitePaymentAsync`).
+  - Order status consultation query (`QueryOrderAsync`).
+- **🛡️ 3D Secure v2 & PSD2 SCA (EMV3DS):**
+  - Strongly-typed `RedsysEmv3Ds` context and fluent exemption configuration (`.With3DsExemption()`).
+- **🩺 ASP.NET Core Health Checks:**
+  - Built-in `services.AddHealthChecks().AddRedsys()` probe verifying live gateway connectivity.
 - **🧪 BetterRedsys.Simulator (Separate NuGet Package):**
   - In-memory local payment simulation (`app.UseRedsysSimulator()`).
   - Interactive bilingual UI to simulate approvals, insufficient funds, expired cards, 3DS failures, and cancelations.
   - Dispatches an authentic HMAC-SHA256 signed HTTP POST to the local webhook without `ngrok`.
-  - Simulates direct server-to-server REST operations (refunds, COF charges, preauthorizations).
+  - Simulates direct server-to-server REST operations (refunds, COF charges, InSite, order queries, preauthorizations).
 
 ---
 
