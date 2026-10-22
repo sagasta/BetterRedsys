@@ -1,5 +1,3 @@
-using System.Net;
-
 namespace BetterRedsys.SampleApi;
 
 /// <summary>

@@ -1,12 +1,8 @@
 using System.Net;
 using BetterRedsys.Configuration;
 using BetterRedsys.HealthChecks;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace BetterRedsys.Tests;

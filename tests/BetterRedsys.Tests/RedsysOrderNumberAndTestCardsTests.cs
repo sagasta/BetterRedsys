@@ -1,6 +1,5 @@
 using BetterRedsys.Models;
 using BetterRedsys.Testing;
-using Xunit;
 
 namespace BetterRedsys.Tests;
 

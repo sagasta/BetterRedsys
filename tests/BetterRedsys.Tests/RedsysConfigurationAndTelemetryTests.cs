@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using BetterRedsys.Configuration;
 using BetterRedsys.Cryptography;
 using BetterRedsys.Diagnostics;
@@ -54,7 +55,7 @@ public class RedsysConfigurationAndTelemetryTests
     {
         var services = new ServiceCollection();
 
-        IBetterRedsysBuilder builder = services.AddBetterRedsys(options =>
+        var builder = services.AddBetterRedsys(options =>
         {
             options.UseTest("999008881", "1", SecretKey)
                    .WithEuros()
@@ -141,16 +142,14 @@ public class RedsysConfigurationAndTelemetryTests
         var client = new RedsysClient(Options.Create(options), crypto);
 
         Activity? capturedActivity = null;
-        using var listener = new ActivityListener
+        using var listener = new ActivityListener();
+        listener.ShouldListenTo = source => source.Name == RedsysTelemetry.Name;
+        listener.Sample = (ref _) => ActivitySamplingResult.AllDataAndRecorded;
+        listener.ActivityStopped = a =>
         {
-            ShouldListenTo = source => source.Name == RedsysTelemetry.Name,
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
-            ActivityStopped = a =>
+            if (a.OperationName == "Redsys.CreatePayment" && Equals(a.GetTagItem("redsys.order"), "2026102299"))
             {
-                if (a.OperationName == "Redsys.CreatePayment" && Equals(a.GetTagItem("redsys.order"), "2026102299"))
-                {
-                    capturedActivity = a;
-                }
+                capturedActivity = a;
             }
         };
         ActivitySource.AddActivityListener(listener);
@@ -179,7 +178,7 @@ public class RedsysConfigurationAndTelemetryTests
         var crypto = new RedsysCryptoService();
         var client = new RedsysClient(Options.Create(options), crypto);
 
-        string order = "2026102288";
+        var order = "2026102288";
         var simulatedDto = new RedsysNotificationParametersDto
         {
             Amount = "2500",
@@ -192,27 +191,25 @@ public class RedsysConfigurationAndTelemetryTests
             SecurePayment = "1"
         };
 
-        byte[] jsonBytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(simulatedDto, RedsysJsonContext.Default.RedsysNotificationParametersDto);
-        string paramsBase64 = Convert.ToBase64String(jsonBytes);
-        byte[] diversifiedKey = crypto.DiversifyKey(options.SecretKey, order);
-        string signature = crypto.ComputeSignature(paramsBase64, diversifiedKey);
+        var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(simulatedDto, RedsysJsonContext.Default.RedsysNotificationParametersDto);
+        var paramsBase64 = Convert.ToBase64String(jsonBytes);
+        var diversifiedKey = crypto.DiversifyKey(options.SecretKey, order);
+        var signature = crypto.ComputeSignature(paramsBase64, diversifiedKey);
 
         Activity? capturedActivity = null;
-        using var listener = new ActivityListener
+        using var listener = new ActivityListener();
+        listener.ShouldListenTo = source => source.Name == RedsysTelemetry.Name;
+        listener.Sample = (ref _) => ActivitySamplingResult.AllDataAndRecorded;
+        listener.ActivityStopped = a =>
         {
-            ShouldListenTo = source => source.Name == RedsysTelemetry.Name,
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
-            ActivityStopped = a =>
+            if (a.OperationName == "Redsys.VerifyWebhook" && Equals(a.GetTagItem("redsys.order"), order))
             {
-                if (a.OperationName == "Redsys.VerifyWebhook" && Equals(a.GetTagItem("redsys.order"), order))
-                {
-                    capturedActivity = a;
-                }
+                capturedActivity = a;
             }
         };
         ActivitySource.AddActivityListener(listener);
 
-        bool isValid = client.TryDecodeNotification(paramsBase64, signature, out var notification, out var error);
+        var isValid = client.TryDecodeNotification(paramsBase64, signature, out var notification, out var error);
 
         Assert.True(isValid);
         Assert.NotNull(notification);
