@@ -55,7 +55,7 @@ public static class RedsysServiceCollectionExtensions
 
     private static void RegisterCoreServices(IServiceCollection services)
     {
-        services.AddHttpClient("BetterRedsysDevMock");
+        services.AddHttpClient("BetterRedsys");
         services.TryAddSingleton<IRedsysCryptoService, RedsysCryptoService>();
         services.TryAddScoped<IRedsysClient, RedsysClient>();
     }

@@ -4,6 +4,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/BetterRedsys/BetterRedsys.csproj" />
+    <Project Path="src/BetterRedsys.Simulator/BetterRedsys.Simulator.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/BetterRedsys.Tests/BetterRedsys.Tests.csproj" />

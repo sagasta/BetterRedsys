@@ -24,14 +24,4 @@ public static class RedsysEndpoints
     /// Official test (Sandbox) server-to-server REST endpoint for direct operations.
     /// </summary>
     public const string RestTest = "https://sis-t.redsys.es:25443/sis/rest/trataPeticionREST";
-
-    /// <summary>
-    /// Default local path for the embedded BetterRedsys DevMock form simulator middleware.
-    /// </summary>
-    public const string DefaultDevMockPath = "/redsys-mock/pay";
-
-    /// <summary>
-    /// Default local path for the embedded BetterRedsys DevMock REST operations simulator.
-    /// </summary>
-    public const string DefaultDevMockRestPath = "/redsys-mock/rest/trataPeticionREST";
 }

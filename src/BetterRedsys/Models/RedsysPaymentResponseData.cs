@@ -8,7 +8,7 @@ namespace BetterRedsys.Models;
 /// <param name="SignatureVersion">The signature algorithm version (standard: "HMAC_SHA256_V1").</param>
 /// <param name="MerchantParameters">Merchant parameters serialized as JSON and Base64-encoded.</param>
 /// <param name="Signature">HMAC-SHA256 cryptographic signature computed with the diversified 3DES key.</param>
-/// <param name="ActionUrl">Gateway destination endpoint (Redsys Test, Redsys Production, or DevMock).</param>
+/// <param name="ActionUrl">Gateway destination endpoint (Redsys Test, Redsys Production, or BetterRedsys.Simulator).</param>
 /// <param name="Order">Associated unique order identifier.</param>
 /// <param name="Amount">Strongly-typed transaction amount.</param>
 public sealed record RedsysPaymentResponseData(

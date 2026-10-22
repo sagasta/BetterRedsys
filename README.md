@@ -36,17 +36,22 @@ Modern, strongly-typed, high-performance, and **Native AOT Ready** Redsys and Bi
 - **🎯 Minimal APIs Webhook Handler:**
   - `app.MapRedsysWebhook("/api/payments/webhook", async (RedsysNotification notification) => ...)`
   - Automatic cryptographic verification before invoking business logic. Responds with `400 Bad Request` if tampered.
-- **🧪 Redsys DevMock Middleware:**
-  - In-memory local payment simulation (`app.UseRedsysDevMock()`).
+- **🧪 BetterRedsys.Simulator (Separate NuGet Package):**
+  - In-memory local payment simulation (`app.UseRedsysSimulator()`).
   - Interactive bilingual UI to simulate approvals, insufficient funds, expired cards, 3DS failures, and cancelations.
   - Dispatches an authentic HMAC-SHA256 signed HTTP POST to the local webhook without `ngrok`.
+  - Simulates direct server-to-server REST operations (refunds, COF charges, preauthorizations).
 
 ---
 
 ## 📦 Installation / Instalación
 
 ```bash
+# Core payment client & cryptographic verification
 dotnet add package BetterRedsys
+
+# Optional: In-memory local payment & REST gateway simulator for development
+dotnet add package BetterRedsys.Simulator
 ```
 
 ---
@@ -57,10 +62,10 @@ dotnet add package BetterRedsys
 
 ```csharp
 using BetterRedsys.Configuration;
-using BetterRedsys.DevMock;
 using BetterRedsys.Endpoints;
 using BetterRedsys.Models;
 using BetterRedsys.Services;
+using BetterRedsys.Simulator; // When using BetterRedsys.Simulator
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -75,14 +80,19 @@ builder.Services.AddBetterRedsys(options =>
     options.UrlOk = "/checkout/success";
     options.UrlKo = "/checkout/cancel";
     options.IsProduction = false;
-    options.UseDevMock = builder.Environment.IsDevelopment(); // Local DevMock
 });
+
+// Optional: Enable simulator in development
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddBetterRedsysSimulator();
+}
 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseRedsysDevMock();
+    app.UseRedsysSimulator();
 }
 ```
 

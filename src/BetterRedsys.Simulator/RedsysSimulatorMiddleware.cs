@@ -9,31 +9,34 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace BetterRedsys.DevMock;
+namespace BetterRedsys.Simulator;
 
 /// <summary>
 /// Development middleware for interactively simulating the Redsys gateway in-memory without ngrok or bank sandbox access.
 /// </summary>
-public sealed class RedsysDevMockMiddleware
+public sealed class RedsysSimulatorMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly RedsysOptions _options;
+    private readonly RedsysOptions _redsysOptions;
+    private readonly RedsysSimulatorOptions _simulatorOptions;
     private readonly IRedsysCryptoService _cryptoService;
     private readonly IHttpClientFactory? _httpClientFactory;
-    private readonly ILogger<RedsysDevMockMiddleware> _logger;
+    private readonly ILogger<RedsysSimulatorMiddleware> _logger;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="RedsysDevMockMiddleware"/>.
+    /// Initializes a new instance of <see cref="RedsysSimulatorMiddleware"/>.
     /// </summary>
-    public RedsysDevMockMiddleware(
+    public RedsysSimulatorMiddleware(
         RequestDelegate next,
-        IOptions<RedsysOptions> options,
+        IOptions<RedsysOptions> redsysOptions,
+        IOptions<RedsysSimulatorOptions> simulatorOptions,
         IRedsysCryptoService cryptoService,
-        ILogger<RedsysDevMockMiddleware> logger,
+        ILogger<RedsysSimulatorMiddleware> logger,
         IHttpClientFactory? httpClientFactory = null)
     {
         _next = next;
-        _options = options.Value;
+        _redsysOptions = redsysOptions.Value;
+        _simulatorOptions = simulatorOptions.Value;
         _cryptoService = cryptoService;
         _logger = logger;
         _httpClientFactory = httpClientFactory;
@@ -44,21 +47,21 @@ public sealed class RedsysDevMockMiddleware
     /// </summary>
     public async Task InvokeAsync(HttpContext context)
     {
-        // Production & feature guard: do not intercept requests if DevMock is disabled or running in Production
-        if (_options.IsProduction || !_options.UseDevMock)
+        // Production safety guard: do not intercept requests if running in Production
+        if (_redsysOptions.IsProduction)
         {
             await _next(context);
             return;
         }
 
         string path = context.Request.Path.Value ?? string.Empty;
-        string mockBasePath = _options.DevMockPath.TrimEnd('/');
+        string mockBasePath = _simulatorOptions.Path.TrimEnd('/');
 
         // Server-to-server REST simulation endpoint (trataPeticionREST)
-        if (path.Equals(_options.DevMockRestPath, StringComparison.OrdinalIgnoreCase) &&
+        if (path.Equals(_simulatorOptions.RestPath, StringComparison.OrdinalIgnoreCase) &&
             HttpMethods.IsPost(context.Request.Method))
         {
-            await HandleDevMockRestOperationAsync(context);
+            await HandleSimulatorRestOperationAsync(context);
             return;
         }
 
@@ -87,13 +90,13 @@ public sealed class RedsysDevMockMiddleware
         await _next(context);
     }
 
-    private async Task HandleDevMockRestOperationAsync(HttpContext context)
+    private async Task HandleSimulatorRestOperationAsync(HttpContext context)
     {
         try
         {
             using var reader = new StreamReader(context.Request.Body, Encoding.UTF8);
             string body = await reader.ReadToEndAsync();
-            var restReq = JsonSerializer.Deserialize(body, RedsysJsonContext.Default.RedsysRestRequestDto);
+            var restReq = JsonSerializer.Deserialize(body, SimulatorRestJsonContext.Default.SimulatorRestRequestDto);
 
             if (restReq is null || string.IsNullOrWhiteSpace(restReq.MerchantParameters))
             {
@@ -103,7 +106,7 @@ public sealed class RedsysDevMockMiddleware
 
             string normalizedParams = _cryptoService.NormalizeBase64(restReq.MerchantParameters);
             byte[] paramBytes = Convert.FromBase64String(normalizedParams);
-            var merchantDto = JsonSerializer.Deserialize(paramBytes, RedsysJsonContext.Default.RedsysMerchantParametersDto);
+            var merchantDto = JsonSerializer.Deserialize(paramBytes, SimulatorRestJsonContext.Default.SimulatorRestMerchantDto);
 
             if (merchantDto is null || string.IsNullOrWhiteSpace(merchantDto.Order))
             {
@@ -120,15 +123,15 @@ public sealed class RedsysDevMockMiddleware
                 _ => "0000"    // Default direct authorization
             };
 
-            var notificationDto = new RedsysNotificationParametersDto
+            var notificationDto = new SimulatorRestNotificationDto
             {
                 Date = Uri.EscapeDataString(DateTime.Now.ToString("dd/MM/yyyy")),
                 Hour = Uri.EscapeDataString(DateTime.Now.ToString("HH:mm")),
                 Amount = merchantDto.Amount,
-                Currency = merchantDto.Currency ?? _options.Currency,
+                Currency = merchantDto.Currency ?? _redsysOptions.Currency,
                 Order = merchantDto.Order,
-                MerchantCode = merchantDto.MerchantCode ?? _options.Fuc,
-                Terminal = merchantDto.Terminal ?? _options.Terminal,
+                MerchantCode = merchantDto.MerchantCode ?? _redsysOptions.Fuc,
+                Terminal = merchantDto.Terminal ?? _redsysOptions.Terminal,
                 Response = responseCode,
                 AuthorisationCode = "888999",
                 TransactionType = merchantDto.TransactionType,
@@ -139,13 +142,13 @@ public sealed class RedsysDevMockMiddleware
                 MerchantIdentifier = merchantDto.Identifier ?? "TOK_MOCK_123456789"
             };
 
-            byte[] notifBytes = JsonSerializer.SerializeToUtf8Bytes(notificationDto, RedsysJsonContext.Default.RedsysNotificationParametersDto);
+            byte[] notifBytes = JsonSerializer.SerializeToUtf8Bytes(notificationDto, SimulatorRestJsonContext.Default.SimulatorRestNotificationDto);
             string notifBase64 = Convert.ToBase64String(notifBytes);
 
-            byte[] diversifiedKey = _cryptoService.DiversifyKey(_options.SecretKey, merchantDto.Order);
+            byte[] diversifiedKey = _cryptoService.DiversifyKey(_redsysOptions.SecretKey, merchantDto.Order);
             string signature = _cryptoService.ComputeSignature(notifBase64, diversifiedKey);
 
-            var restResponse = new RedsysRestResponseDto
+            var restResponse = new SimulatorRestResponseDto
             {
                 SignatureVersion = "HMAC_SHA256_V1",
                 MerchantParameters = notifBase64,
@@ -153,11 +156,11 @@ public sealed class RedsysDevMockMiddleware
             };
 
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(restResponse, RedsysJsonContext.Default.RedsysRestResponseDto);
+            await context.Response.WriteAsJsonAsync(restResponse, SimulatorRestJsonContext.Default.SimulatorRestResponseDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DevMock: Error processing REST simulation request.");
+            _logger.LogError(ex, "BetterRedsys Simulator: Error processing REST simulation request.");
             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
         }
     }
@@ -171,30 +174,30 @@ public sealed class RedsysDevMockMiddleware
             merchantParametersBase64 = form[RedsysPaymentResponseData.FormFieldMerchantParameters].ToString();
         }
 
-        RedsysMerchantParametersDto? parameters = null;
+        SimulatorRestMerchantDto? parameters = null;
         if (!string.IsNullOrWhiteSpace(merchantParametersBase64))
         {
             try
             {
                 string normalized = _cryptoService.NormalizeBase64(merchantParametersBase64);
                 byte[] jsonBytes = Convert.FromBase64String(normalized);
-                parameters = JsonSerializer.Deserialize(jsonBytes, RedsysJsonContext.Default.RedsysMerchantParametersDto);
+                parameters = JsonSerializer.Deserialize(jsonBytes, SimulatorRestJsonContext.Default.SimulatorRestMerchantDto);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "DevMock: Could not deserialize Ds_MerchantParameters.");
+                _logger.LogWarning(ex, "BetterRedsys Simulator: Could not deserialize Ds_MerchantParameters.");
             }
         }
 
         context.Response.ContentType = "text/html; charset=utf-8";
-        string html = GenerateDevMockHtml(parameters, context.Request);
+        string html = GenerateSimulatorHtml(parameters, context.Request);
         await context.Response.WriteAsync(html);
     }
 
     private async Task RenderMockLandingUiAsync(HttpContext context)
     {
         context.Response.ContentType = "text/html; charset=utf-8";
-        string html = GenerateDevMockLandingHtml();
+        string html = GenerateSimulatorLandingHtml();
         await context.Response.WriteAsync(html);
     }
 
@@ -204,13 +207,13 @@ public sealed class RedsysDevMockMiddleware
         {
             using var reader = new StreamReader(context.Request.Body, Encoding.UTF8);
             string body = await reader.ReadToEndAsync();
-            var simRequest = JsonSerializer.Deserialize(body, DevMockJsonContext.Default.DevMockSimulationRequest);
+            var simRequest = JsonSerializer.Deserialize(body, SimulatorJsonContext.Default.SimulatorSimulationRequest);
 
             if (simRequest is null || string.IsNullOrWhiteSpace(simRequest.Order))
             {
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                var errResponse = new DevMockSimulationResponse(false, 400, null, null, "Invalid simulation request payload.");
-                await context.Response.WriteAsJsonAsync(errResponse, DevMockJsonContext.Default.DevMockSimulationResponse);
+                var errResponse = new SimulatorSimulationResponse(false, 400, null, null, "Invalid simulation request payload.");
+                await context.Response.WriteAsJsonAsync(errResponse, SimulatorJsonContext.Default.SimulatorSimulationResponse);
                 return;
             }
 
@@ -219,15 +222,15 @@ public sealed class RedsysDevMockMiddleware
             string hour = DateTime.Now.ToString("HH:mm");
             bool isSuccess = RedsysResponseCatalog.IsSuccess(simRequest.ResponseCode);
 
-            var notificationDto = new RedsysNotificationParametersDto
+            var notificationDto = new SimulatorRestNotificationDto
             {
                 Date = Uri.EscapeDataString(now),
                 Hour = Uri.EscapeDataString(hour),
                 Amount = simRequest.Amount,
-                Currency = simRequest.Currency ?? _options.Currency,
+                Currency = simRequest.Currency ?? _redsysOptions.Currency,
                 Order = simRequest.Order,
-                MerchantCode = simRequest.MerchantCode ?? _options.Fuc,
-                Terminal = simRequest.Terminal ?? _options.Terminal,
+                MerchantCode = simRequest.MerchantCode ?? _redsysOptions.Fuc,
+                Terminal = simRequest.Terminal ?? _redsysOptions.Terminal,
                 Response = simRequest.ResponseCode,
                 AuthorisationCode = isSuccess ? (simRequest.AuthorisationCode ?? "999888") : null,
                 TransactionType = "0",
@@ -240,20 +243,20 @@ public sealed class RedsysDevMockMiddleware
             };
 
             // Serialize parameters
-            byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(notificationDto, RedsysJsonContext.Default.RedsysNotificationParametersDto);
+            byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(notificationDto, SimulatorRestJsonContext.Default.SimulatorRestNotificationDto);
             string notifParamsBase64 = Convert.ToBase64String(jsonBytes);
 
             // Compute authentic HMAC-SHA256 signature
-            byte[] diversifiedKey = _cryptoService.DiversifyKey(_options.SecretKey, simRequest.Order);
+            byte[] diversifiedKey = _cryptoService.DiversifyKey(_redsysOptions.SecretKey, simRequest.Order);
             string signature = _cryptoService.ComputeSignature(notifParamsBase64, diversifiedKey);
 
             // Determine target webhook URL and apply SSRF protection
-            string targetWebhookUrl = simRequest.MerchantUrl ?? _options.MerchantUrl ?? string.Empty;
+            string targetWebhookUrl = simRequest.MerchantUrl ?? _redsysOptions.MerchantUrl ?? string.Empty;
             if (string.IsNullOrWhiteSpace(targetWebhookUrl))
             {
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                var errResponse = new DevMockSimulationResponse(false, 400, null, null, "No MerchantUrl notification endpoint configured.");
-                await context.Response.WriteAsJsonAsync(errResponse, DevMockJsonContext.Default.DevMockSimulationResponse);
+                var errResponse = new SimulatorSimulationResponse(false, 400, null, null, "No MerchantUrl notification endpoint configured.");
+                await context.Response.WriteAsJsonAsync(errResponse, SimulatorJsonContext.Default.SimulatorSimulationResponse);
                 return;
             }
 
@@ -266,26 +269,26 @@ public sealed class RedsysDevMockMiddleware
             else if (Uri.TryCreate(targetWebhookUrl, UriKind.Absolute, out Uri? absoluteUri))
             {
                 bool isAllowedHost = string.Equals(absoluteUri.Host, context.Request.Host.Host, StringComparison.OrdinalIgnoreCase) ||
-                                     string.Equals(targetWebhookUrl, _options.MerchantUrl, StringComparison.OrdinalIgnoreCase);
+                                     string.Equals(targetWebhookUrl, _redsysOptions.MerchantUrl, StringComparison.OrdinalIgnoreCase);
 
                 if (!isAllowedHost)
                 {
                     context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                    var errResponse = new DevMockSimulationResponse(false, 400, null, null, "SSRF Protection: Webhook simulation cannot target unauthorized external hosts.");
-                    await context.Response.WriteAsJsonAsync(errResponse, DevMockJsonContext.Default.DevMockSimulationResponse);
+                    var errResponse = new SimulatorSimulationResponse(false, 400, null, null, "SSRF Protection: Webhook simulation cannot target unauthorized external hosts.");
+                    await context.Response.WriteAsJsonAsync(errResponse, SimulatorJsonContext.Default.SimulatorSimulationResponse);
                     return;
                 }
             }
             else
             {
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                var errResponse = new DevMockSimulationResponse(false, 400, null, null, "Invalid webhook target URI format.");
-                await context.Response.WriteAsJsonAsync(errResponse, DevMockJsonContext.Default.DevMockSimulationResponse);
+                var errResponse = new SimulatorSimulationResponse(false, 400, null, null, "Invalid webhook target URI format.");
+                await context.Response.WriteAsJsonAsync(errResponse, SimulatorJsonContext.Default.SimulatorSimulationResponse);
                 return;
             }
 
             // Dispatch HTTP POST to merchant webhook
-            using var httpClient = _httpClientFactory?.CreateClient("BetterRedsysDevMock") ?? new HttpClient();
+            using var httpClient = _httpClientFactory?.CreateClient("BetterRedsysSimulator") ?? new HttpClient();
             var formContent = new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 [RedsysPaymentResponseData.FormFieldSignatureVersion] = "HMAC_SHA256_V1",
@@ -293,43 +296,43 @@ public sealed class RedsysDevMockMiddleware
                 [RedsysPaymentResponseData.FormFieldSignature] = signature
             });
 
-            _logger.LogInformation("DevMock: Dispatching simulated webhook to {Url} with result {Code}", targetWebhookUrl, simRequest.ResponseCode);
+            _logger.LogInformation("BetterRedsys Simulator: Dispatching simulated webhook to {Url} with result {Code}", targetWebhookUrl, simRequest.ResponseCode);
 
             HttpResponseMessage response = await httpClient.PostAsync(targetWebhookUrl, formContent);
             string responseText = await response.Content.ReadAsStringAsync();
 
-            string redirectUrl = isSuccess ? (simRequest.UrlOk ?? _options.UrlOk ?? "/") : (simRequest.UrlKo ?? _options.UrlKo ?? "/");
+            string redirectUrl = isSuccess ? (simRequest.UrlOk ?? _redsysOptions.UrlOk ?? "/") : (simRequest.UrlKo ?? _redsysOptions.UrlKo ?? "/");
 
-            var okResponse = new DevMockSimulationResponse(
+            var okResponse = new SimulatorSimulationResponse(
                 Success: true,
                 WebhookStatus: (int)response.StatusCode,
                 WebhookResponse: responseText,
                 RedirectUrl: redirectUrl);
 
-            await context.Response.WriteAsJsonAsync(okResponse, DevMockJsonContext.Default.DevMockSimulationResponse);
+            await context.Response.WriteAsJsonAsync(okResponse, SimulatorJsonContext.Default.SimulatorSimulationResponse);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DevMock: Error dispatching simulated webhook.");
+            _logger.LogError(ex, "BetterRedsys Simulator: Error dispatching simulated webhook.");
             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-            var errResponse = new DevMockSimulationResponse(false, 500, null, null, ex.Message);
-            await context.Response.WriteAsJsonAsync(errResponse, DevMockJsonContext.Default.DevMockSimulationResponse);
+            var errResponse = new SimulatorSimulationResponse(false, 500, null, null, ex.Message);
+            await context.Response.WriteAsJsonAsync(errResponse, SimulatorJsonContext.Default.SimulatorSimulationResponse);
         }
     }
 
-    private string GenerateDevMockHtml(RedsysMerchantParametersDto? p, HttpRequest req)
+    private string GenerateSimulatorHtml(SimulatorRestMerchantDto? p, HttpRequest req)
     {
         string rawOrder = p?.Order ?? "000000";
         string rawAmount = p?.Amount ?? "0";
-        string rawMerchantCode = p?.MerchantCode ?? _options.Fuc;
-        string rawTerminal = p?.Terminal ?? _options.Terminal;
-        string rawCurrency = p?.Currency ?? _options.Currency;
-        string rawMerchantUrl = p?.MerchantUrl ?? _options.MerchantUrl ?? "";
-        string rawUrlOk = p?.UrlOk ?? _options.UrlOk ?? "";
-        string rawUrlKo = p?.UrlKo ?? _options.UrlKo ?? "";
+        string rawMerchantCode = p?.MerchantCode ?? _redsysOptions.Fuc;
+        string rawTerminal = p?.Terminal ?? _redsysOptions.Terminal;
+        string rawCurrency = p?.Currency ?? _redsysOptions.Currency;
+        string rawMerchantUrl = p?.MerchantUrl ?? _redsysOptions.MerchantUrl ?? "";
+        string rawUrlOk = p?.UrlOk ?? _redsysOptions.UrlOk ?? "";
+        string rawUrlKo = p?.UrlKo ?? _redsysOptions.UrlKo ?? "";
         string rawMerchantData = p?.MerchantData ?? "";
 
-        var initialData = new DevMockSimulationInitialData(
+        var initialData = new SimulatorSimulationInitialData(
             rawOrder,
             rawAmount,
             rawCurrency,
@@ -340,7 +343,7 @@ public sealed class RedsysDevMockMiddleware
             rawUrlKo,
             rawMerchantData);
 
-        string initialDataJson = JsonSerializer.Serialize(initialData, DevMockJsonContext.Default.DevMockSimulationInitialData);
+        string initialDataJson = JsonSerializer.Serialize(initialData, SimulatorJsonContext.Default.SimulatorSimulationInitialData);
 
         long.TryParse(rawAmount, out long cents);
         var amount = new RedsysAmount(cents);
@@ -360,7 +363,7 @@ public sealed class RedsysDevMockMiddleware
         RedsysLanguage consumerLang = RedsysLanguageExtensions.FromRedsysCode(p?.ConsumerLanguage ?? "001");
         bool isBizumAvailable = (p?.PayMethods ?? "").Contains('z', StringComparison.OrdinalIgnoreCase);
 
-        string dispatchUrl = WebUtility.HtmlEncode($"{req.PathBase}{_options.DevMockPath.TrimEnd('/')}/dispatch-webhook");
+        string dispatchUrl = WebUtility.HtmlEncode($"{req.PathBase}{_simulatorOptions.Path.TrimEnd('/')}/dispatch-webhook");
 
         return $$"""
         <!DOCTYPE html>
@@ -368,7 +371,7 @@ public sealed class RedsysDevMockMiddleware
         <head>
             <meta charset="utf-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>BetterRedsys DevMock • Interactive Payment Simulator</title>
+            <title>BetterRedsys Simulator • Interactive Payment Simulator</title>
             <style>
                 :root {
                     --bg: #090d16;
@@ -498,11 +501,11 @@ public sealed class RedsysDevMockMiddleware
             <div class="container">
                 <div class="header">
                     <div>
-                        <h2>Redsys DevMock • Local Sandbox / Simulador Local</h2>
+                        <h2>BetterRedsys Simulator • Local Sandbox / Simulador Local</h2>
                         <p style="font-size: 0.85rem; color: var(--muted); margin-top: 4px;">In-memory payment simulation & webhook dispatcher • Simulación y despacho local.</p>
                     </div>
                     <div class="title-badge">
-                        <span class="badge-dot"></span> DEV INTERCEPTOR
+                        <span class="badge-dot"></span> SIMULATOR ACTIVE
                     </div>
                 </div>
 
@@ -568,7 +571,7 @@ public sealed class RedsysDevMockMiddleware
                 </div>
             </div>
 
-            <script id="devMockData" type="application/json">
+            <script id="simulatorData" type="application/json">
                 {{initialDataJson}}
             </script>
             <script>
@@ -585,7 +588,7 @@ public sealed class RedsysDevMockMiddleware
                     statusBox.style.display = 'block';
                     redirectActions.style.display = 'none';
 
-                    const baseData = JSON.parse(document.getElementById('devMockData').textContent);
+                    const baseData = JSON.parse(document.getElementById('simulatorData').textContent);
                     const payload = {
                         ...baseData,
                         responseCode: document.getElementById('selectResponse').value,
@@ -632,7 +635,7 @@ public sealed class RedsysDevMockMiddleware
         """;
     }
 
-    private string GenerateDevMockLandingHtml()
+    private string GenerateSimulatorLandingHtml()
     {
         return $$"""
         <!DOCTYPE html>
@@ -640,7 +643,7 @@ public sealed class RedsysDevMockMiddleware
         <head>
             <meta charset="utf-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>BetterRedsys DevMock • Active / Activo</title>
+            <title>BetterRedsys Simulator • Active / Activo</title>
             <style>
                 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #090d16; color: #f1f5f9; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
                 .card { background: #131b2e; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 40px; max-width: 540px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
@@ -652,13 +655,13 @@ public sealed class RedsysDevMockMiddleware
         </head>
         <body>
             <div class="card">
-                <div class="badge">● DEVMOCK ONLINE</div>
-                <h1>BetterRedsys DevMock</h1>
+                <div class="badge">● SIMULATOR ONLINE</div>
+                <h1>BetterRedsys Simulator</h1>
                 <p>The local Redsys & Bizum simulator is active and ready to intercept payment requests from your application.</p>
                 <div class="code">
                     // Payments generated with RedsysPaymentBuilder<br>
                     // will be automatically intercepted at this route:<br>
-                    Endpoint: {{_options.DevMockPath}}
+                    Endpoint: {{_simulatorOptions.Path}}
                 </div>
             </div>
         </body>
@@ -668,9 +671,9 @@ public sealed class RedsysDevMockMiddleware
 }
 
 /// <summary>
-/// JSON initial order parameters embedded in DevMock UI.
+/// JSON initial order parameters embedded in simulator UI.
 /// </summary>
-public sealed record DevMockSimulationInitialData(
+internal sealed record SimulatorSimulationInitialData(
     [property: JsonPropertyName("order")] string? Order,
     [property: JsonPropertyName("amount")] string? Amount,
     [property: JsonPropertyName("currency")] string? Currency,
@@ -682,9 +685,9 @@ public sealed record DevMockSimulationInitialData(
     [property: JsonPropertyName("merchantData")] string? MerchantData);
 
 /// <summary>
-/// Internal JSON simulation request model used by DevMock.
+/// Internal JSON simulation request model used by simulator.
 /// </summary>
-public sealed record DevMockSimulationRequest(
+internal sealed record SimulatorSimulationRequest(
     [property: JsonPropertyName("order")] string? Order,
     [property: JsonPropertyName("amount")] string? Amount,
     [property: JsonPropertyName("currency")] string? Currency,
@@ -699,9 +702,9 @@ public sealed record DevMockSimulationRequest(
     [property: JsonPropertyName("authorisationCode")] string? AuthorisationCode);
 
 /// <summary>
-/// JSON simulation response model returned by DevMock upon dispatching a webhook.
+/// JSON simulation response model returned by simulator upon dispatching a webhook.
 /// </summary>
-public sealed record DevMockSimulationResponse(
+internal sealed record SimulatorSimulationResponse(
     [property: JsonPropertyName("success")] bool Success,
     [property: JsonPropertyName("webhookStatus")] int WebhookStatus,
     [property: JsonPropertyName("webhookResponse")] string? WebhookResponse,
@@ -709,12 +712,165 @@ public sealed record DevMockSimulationResponse(
     [property: JsonPropertyName("error")] string? Error = null);
 
 /// <summary>
-/// System.Text.Json context for DevMock simulation (Native AOT ready).
+/// Internal DTO for simulator REST requests.
+/// </summary>
+internal sealed class SimulatorRestRequestDto
+{
+    [JsonPropertyName("Ds_SignatureVersion")]
+    public string? SignatureVersion { get; set; }
+
+    [JsonPropertyName("Ds_MerchantParameters")]
+    public string? MerchantParameters { get; set; }
+
+    [JsonPropertyName("Ds_Signature")]
+    public string? Signature { get; set; }
+}
+
+/// <summary>
+/// Internal DTO for simulator REST responses.
+/// </summary>
+internal sealed class SimulatorRestResponseDto
+{
+    [JsonPropertyName("Ds_SignatureVersion")]
+    public string? SignatureVersion { get; set; }
+
+    [JsonPropertyName("Ds_MerchantParameters")]
+    public string? MerchantParameters { get; set; }
+
+    [JsonPropertyName("Ds_Signature")]
+    public string? Signature { get; set; }
+
+    [JsonPropertyName("errorCode")]
+    public string? ErrorCode { get; set; }
+}
+
+/// <summary>
+/// Internal DTO for simulator merchant parameters.
+/// </summary>
+internal sealed class SimulatorRestMerchantDto
+{
+    [JsonPropertyName("DS_MERCHANT_AMOUNT")]
+    public string? Amount { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_ORDER")]
+    public string? Order { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_MERCHANTCODE")]
+    public string? MerchantCode { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_CURRENCY")]
+    public string? Currency { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_TRANSACTIONTYPE")]
+    public string? TransactionType { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_TERMINAL")]
+    public string? Terminal { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_MERCHANTURL")]
+    public string? MerchantUrl { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_URLOK")]
+    public string? UrlOk { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_URLKO")]
+    public string? UrlKo { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_PAYMETHODS")]
+    public string? PayMethods { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_CUSTOMER_MOBILE")]
+    public string? CustomerMobile { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_PRODUCTDESCRIPTION")]
+    public string? ProductDescription { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_MERCHANTDATA")]
+    public string? MerchantData { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_CONSUMERLANGUAGE")]
+    public string? ConsumerLanguage { get; set; }
+
+    [JsonPropertyName("DS_MERCHANT_IDENTIFIER")]
+    public string? Identifier { get; set; }
+}
+
+/// <summary>
+/// Internal DTO for simulator notification parameters.
+/// </summary>
+internal sealed class SimulatorRestNotificationDto
+{
+    [JsonPropertyName("Ds_Date")]
+    public string? Date { get; set; }
+
+    [JsonPropertyName("Ds_Hour")]
+    public string? Hour { get; set; }
+
+    [JsonPropertyName("Ds_Amount")]
+    public string? Amount { get; set; }
+
+    [JsonPropertyName("Ds_Currency")]
+    public string? Currency { get; set; }
+
+    [JsonPropertyName("Ds_Order")]
+    public string? Order { get; set; }
+
+    [JsonPropertyName("Ds_MerchantCode")]
+    public string? MerchantCode { get; set; }
+
+    [JsonPropertyName("Ds_Terminal")]
+    public string? Terminal { get; set; }
+
+    [JsonPropertyName("Ds_Response")]
+    public string? Response { get; set; }
+
+    [JsonPropertyName("Ds_AuthorisationCode")]
+    public string? AuthorisationCode { get; set; }
+
+    [JsonPropertyName("Ds_TransactionType")]
+    public string? TransactionType { get; set; }
+
+    [JsonPropertyName("Ds_SecurePayment")]
+    public string? SecurePayment { get; set; }
+
+    [JsonPropertyName("Ds_Card_Country")]
+    public string? CardCountry { get; set; }
+
+    [JsonPropertyName("Ds_Card_Type")]
+    public string? CardType { get; set; }
+
+    [JsonPropertyName("Ds_Card_Brand")]
+    public string? CardBrand { get; set; }
+
+    [JsonPropertyName("Ds_MerchantData")]
+    public string? MerchantData { get; set; }
+
+    [JsonPropertyName("Ds_ProcessedPayMethod")]
+    public string? ProcessedPayMethod { get; set; }
+
+    [JsonPropertyName("Ds_Merchant_Identifier")]
+    public string? MerchantIdentifier { get; set; }
+}
+
+/// <summary>
+/// System.Text.Json context for simulator simulation (Native AOT ready).
 /// </summary>
 [JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Default)]
-[JsonSerializable(typeof(DevMockSimulationInitialData))]
-[JsonSerializable(typeof(DevMockSimulationRequest))]
-[JsonSerializable(typeof(DevMockSimulationResponse))]
-internal sealed partial class DevMockJsonContext : JsonSerializerContext
+[JsonSerializable(typeof(SimulatorSimulationInitialData))]
+[JsonSerializable(typeof(SimulatorSimulationRequest))]
+[JsonSerializable(typeof(SimulatorSimulationResponse))]
+internal sealed partial class SimulatorJsonContext : JsonSerializerContext
+{
+}
+
+/// <summary>
+/// System.Text.Json context for simulator REST operations simulation (Native AOT ready).
+/// </summary>
+[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Default)]
+[JsonSerializable(typeof(SimulatorRestRequestDto))]
+[JsonSerializable(typeof(SimulatorRestResponseDto))]
+[JsonSerializable(typeof(SimulatorRestMerchantDto))]
+[JsonSerializable(typeof(SimulatorRestNotificationDto))]
+internal sealed partial class SimulatorRestJsonContext : JsonSerializerContext
 {
 }

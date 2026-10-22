@@ -53,19 +53,16 @@ public sealed class RedsysOptions
     public bool IsProduction { get; set; }
 
     /// <summary>
-    /// Enables the embedded DevMock simulator middleware for local end-to-end debugging without ngrok or bank sandbox.
+    /// Custom payment gateway URL override (used by testing tools, proxies, or BetterRedsys.Simulator).
+    /// If null or whitespace, defaults to Production or Test URL according to <see cref="IsProduction"/>.
     /// </summary>
-    public bool UseDevMock { get; set; }
+    public string? CustomGatewayUrl { get; set; }
 
     /// <summary>
-    /// Relative URL path where the embedded DevMock interceptor responds.
+    /// Custom server-to-server REST gateway URL override (used by testing tools, proxies, or BetterRedsys.Simulator).
+    /// If null or whitespace, defaults to Production or Test REST URL according to <see cref="IsProduction"/>.
     /// </summary>
-    public string DevMockPath { get; set; } = RedsysEndpoints.DefaultDevMockPath;
-
-    /// <summary>
-    /// Relative URL path where the embedded DevMock REST operations simulator responds.
-    /// </summary>
-    public string DevMockRestPath { get; set; } = RedsysEndpoints.DefaultDevMockRestPath;
+    public string? CustomRestGatewayUrl { get; set; }
 
     /// <summary>
     /// Default transaction type ("0" = Standard Authorization).
@@ -73,28 +70,28 @@ public sealed class RedsysOptions
     public string DefaultTransactionType { get; set; } = "0";
 
     /// <summary>
-    /// Resolves the payment gateway action URL according to the current environment and DevMock configuration.
+    /// Resolves the payment gateway action URL according to the current environment and configuration.
     /// </summary>
     /// <returns>The resolved gateway URL.</returns>
     public string GetPaymentGatewayUrl()
     {
-        if (UseDevMock)
+        if (!string.IsNullOrWhiteSpace(CustomGatewayUrl))
         {
-            return DevMockPath;
+            return CustomGatewayUrl;
         }
 
         return IsProduction ? RedsysEndpoints.Production : RedsysEndpoints.Test;
     }
 
     /// <summary>
-    /// Resolves the server-to-server REST gateway URL (trataPeticionREST) according to the current environment and DevMock configuration.
+    /// Resolves the server-to-server REST gateway URL (trataPeticionREST) according to the current environment and configuration.
     /// </summary>
     /// <returns>The resolved REST gateway URL.</returns>
     public string GetRestGatewayUrl()
     {
-        if (UseDevMock)
+        if (!string.IsNullOrWhiteSpace(CustomRestGatewayUrl))
         {
-            return DevMockRestPath;
+            return CustomRestGatewayUrl;
         }
 
         return IsProduction ? RedsysEndpoints.RestProduction : RedsysEndpoints.RestTest;

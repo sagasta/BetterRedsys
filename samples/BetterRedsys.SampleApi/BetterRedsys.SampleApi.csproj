@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BetterRedsys\BetterRedsys.csproj" />
+    <ProjectReference Include="..\..\src\BetterRedsys.Simulator\BetterRedsys.Simulator.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

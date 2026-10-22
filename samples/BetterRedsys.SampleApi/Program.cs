@@ -1,12 +1,12 @@
 using BetterRedsys.Configuration;
-using BetterRedsys.DevMock;
 using BetterRedsys.Endpoints;
 using BetterRedsys.Models;
 using BetterRedsys.Services;
+using BetterRedsys.Simulator;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configuración del servicio BetterRedsys
+// 1. Configuración del servicio BetterRedsys (Core puro)
 builder.Services.AddBetterRedsys(options =>
 {
     options.Fuc = builder.Configuration["Redsys:Fuc"] ?? "999008881";
@@ -17,15 +17,20 @@ builder.Services.AddBetterRedsys(options =>
     options.UrlOk = "/pedido-exitoso";
     options.UrlKo = "/pedido-cancelado";
     options.IsProduction = false;
-    options.UseDevMock = true; // Activa el simulador DevMock para depuración local
 });
+
+// 2. Activa el simulador desacoplado en entorno de desarrollo local
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddBetterRedsysSimulator();
+}
 
 var app = builder.Build();
 
-// 2. Middleware interactivo DevMock (activo en desarrollo)
+// 2. Middleware interactivo Simulator (activo en desarrollo)
 if (app.Environment.IsDevelopment())
 {
-    app.UseRedsysDevMock();
+    app.UseRedsysSimulator();
 }
 
 // 3. Endpoint para Front-ends desacoplados (React, Next.js, Vue, Blazor, Mobile Apps)

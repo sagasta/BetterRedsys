@@ -2,32 +2,53 @@ using System.Text;
 using System.Text.Json;
 using BetterRedsys.Configuration;
 using BetterRedsys.Cryptography;
-using BetterRedsys.DevMock;
 using BetterRedsys.Models;
 using BetterRedsys.Services;
+using BetterRedsys.Simulator;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace BetterRedsys.Tests;
 
-public class RedsysDevMockTests
+public class RedsysSimulatorTests
 {
     [Fact]
-    public void GetPaymentGatewayUrl_UsesDevMockPath_WhenUseDevMockIsTrue()
+    public void GetPaymentGatewayUrl_UsesCustomGatewayUrl_WhenSpecified()
     {
         var options = new RedsysOptions
         {
             Fuc = "999008881",
             Terminal = "1",
             SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
-            UseDevMock = true,
-            DevMockPath = "/redsys-mock/pay"
+            CustomGatewayUrl = "/redsys-simulator/pay"
         };
 
-        Assert.Equal("/redsys-mock/pay", options.GetPaymentGatewayUrl());
+        Assert.Equal("/redsys-simulator/pay", options.GetPaymentGatewayUrl());
     }
 
     [Fact]
-    public void DevMock_SimulationParameters_AreVerifiableByClient()
+    public void AddBetterRedsysSimulator_ConfiguresCustomGatewayUrls()
+    {
+        var services = new ServiceCollection();
+        services.AddBetterRedsys(options =>
+        {
+            options.Fuc = "999008881";
+            options.Terminal = "1";
+            options.SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U";
+        });
+        services.AddBetterRedsysSimulator();
+
+        var sp = services.BuildServiceProvider();
+        var redsysOpts = sp.GetRequiredService<IOptions<RedsysOptions>>().Value;
+
+        Assert.Equal(RedsysSimulatorEndpoints.DefaultPath, redsysOpts.CustomGatewayUrl);
+        Assert.Equal(RedsysSimulatorEndpoints.DefaultRestPath, redsysOpts.CustomRestGatewayUrl);
+        Assert.Equal(RedsysSimulatorEndpoints.DefaultPath, redsysOpts.GetPaymentGatewayUrl());
+        Assert.Equal(RedsysSimulatorEndpoints.DefaultRestPath, redsysOpts.GetRestGatewayUrl());
+    }
+
+    [Fact]
+    public void Simulator_SimulationParameters_AreVerifiableByClient()
     {
         var options = new RedsysOptions
         {
@@ -40,7 +61,7 @@ public class RedsysDevMockTests
         var client = new RedsysClient(Options.Create(options), crypto);
 
         string order = "2026102201";
-        var simulatedDto = new RedsysNotificationParametersDto
+        var simulatedDto = new SimulatorRestNotificationDto
         {
             Date = Uri.EscapeDataString("22/10/2026"),
             Hour = Uri.EscapeDataString("12:00"),
@@ -56,8 +77,8 @@ public class RedsysDevMockTests
             ProcessedPayMethod = "z"
         };
 
-        // Simular lo que hace DevMock:
-        byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(simulatedDto, RedsysJsonContext.Default.RedsysNotificationParametersDto);
+        // Simular lo que hace el simulador:
+        byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(simulatedDto, SimulatorRestJsonContext.Default.SimulatorRestNotificationDto);
         string paramsBase64 = Convert.ToBase64String(jsonBytes);
 
         byte[] diversifiedKey = crypto.DiversifyKey(options.SecretKey, order);
@@ -76,30 +97,31 @@ public class RedsysDevMockTests
     }
 
     [Fact]
-    public async Task DevMock_WhenInProduction_PassesThroughWithoutIntercepting()
+    public async Task Simulator_WhenInProduction_PassesThroughWithoutIntercepting()
     {
-        var options = new RedsysOptions
+        var redsysOptions = new RedsysOptions
         {
             Fuc = "999008881",
             Terminal = "1",
             SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
-            IsProduction = true, // Production enabled
-            UseDevMock = true
+            IsProduction = true // Production enabled
         };
+        var simulatorOptions = new RedsysSimulatorOptions();
 
         bool nextCalled = false;
-        var middleware = new RedsysDevMockMiddleware(
+        var middleware = new RedsysSimulatorMiddleware(
             next: ctx =>
             {
                 nextCalled = true;
                 return Task.CompletedTask;
             },
-            options: Options.Create(options),
+            redsysOptions: Options.Create(redsysOptions),
+            simulatorOptions: Options.Create(simulatorOptions),
             cryptoService: new RedsysCryptoService(),
-            logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<RedsysDevMockMiddleware>.Instance);
+            logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<RedsysSimulatorMiddleware>.Instance);
 
         var context = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-        context.Request.Path = options.DevMockPath;
+        context.Request.Path = simulatorOptions.Path;
         context.Request.Method = "GET";
 
         await middleware.InvokeAsync(context);
@@ -108,25 +130,26 @@ public class RedsysDevMockTests
     }
 
     [Fact]
-    public async Task DevMock_DispatchWebhook_RejectsExternalSsrfUrl()
+    public async Task Simulator_DispatchWebhook_RejectsExternalSsrfUrl()
     {
-        var options = new RedsysOptions
+        var redsysOptions = new RedsysOptions
         {
             Fuc = "999008881",
             Terminal = "1",
             SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
-            IsProduction = false,
-            UseDevMock = true
+            IsProduction = false
         };
+        var simulatorOptions = new RedsysSimulatorOptions();
 
-        var middleware = new RedsysDevMockMiddleware(
+        var middleware = new RedsysSimulatorMiddleware(
             next: ctx => Task.CompletedTask,
-            options: Options.Create(options),
+            redsysOptions: Options.Create(redsysOptions),
+            simulatorOptions: Options.Create(simulatorOptions),
             cryptoService: new RedsysCryptoService(),
-            logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<RedsysDevMockMiddleware>.Instance);
+            logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<RedsysSimulatorMiddleware>.Instance);
 
         var context = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-        context.Request.Path = $"{options.DevMockPath.TrimEnd('/')}/dispatch-webhook";
+        context.Request.Path = $"{simulatorOptions.Path.TrimEnd('/')}/dispatch-webhook";
         context.Request.Method = "POST";
         context.Request.Host = new Microsoft.AspNetCore.Http.HostString("localhost", 5000);
         context.Request.Scheme = "http";
@@ -153,37 +176,38 @@ public class RedsysDevMockTests
     }
 
     [Fact]
-    public async Task DevMock_RenderMockPaymentUi_EncodesPotentialXssPayload()
+    public async Task Simulator_RenderSimulatorPaymentUi_EncodesPotentialXssPayload()
     {
-        var options = new RedsysOptions
+        var redsysOptions = new RedsysOptions
         {
             Fuc = "999008881",
             Terminal = "1",
             SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
-            IsProduction = false,
-            UseDevMock = true
+            IsProduction = false
         };
+        var simulatorOptions = new RedsysSimulatorOptions();
 
-        var middleware = new RedsysDevMockMiddleware(
+        var middleware = new RedsysSimulatorMiddleware(
             next: ctx => Task.CompletedTask,
-            options: Options.Create(options),
+            redsysOptions: Options.Create(redsysOptions),
+            simulatorOptions: Options.Create(simulatorOptions),
             cryptoService: new RedsysCryptoService(),
-            logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<RedsysDevMockMiddleware>.Instance);
+            logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<RedsysSimulatorMiddleware>.Instance);
 
         var context = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-        context.Request.Path = options.DevMockPath;
+        context.Request.Path = simulatorOptions.Path;
         context.Request.Method = "POST";
         context.Request.ContentType = "application/x-www-form-urlencoded";
 
         string xssDescription = "<script>alert('xss')</script>";
-        var dto = new RedsysMerchantParametersDto
+        var dto = new SimulatorRestMerchantDto
         {
             Order = "2026102202",
             Amount = "5000",
             ProductDescription = xssDescription
         };
 
-        byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(dto, RedsysJsonContext.Default.RedsysMerchantParametersDto);
+        byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(dto, SimulatorRestJsonContext.Default.SimulatorRestMerchantDto);
         string base64Params = Convert.ToBase64String(jsonBytes);
 
         context.Request.Form = new Microsoft.AspNetCore.Http.FormCollection(

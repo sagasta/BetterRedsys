@@ -2,9 +2,9 @@ using System.Text;
 using System.Text.Json;
 using BetterRedsys.Configuration;
 using BetterRedsys.Cryptography;
-using BetterRedsys.DevMock;
 using BetterRedsys.Models;
 using BetterRedsys.Services;
+using BetterRedsys.Simulator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
@@ -72,7 +72,7 @@ public class RedsysRestAndCofTests
         Assert.Contains("\"DS_MERCHANT_COF_TYPE\":\"C\"", json);
     }
 
-    private async Task<IHost> BuildDevMockTestHostAsync()
+    private async Task<IHost> BuildSimulatorTestHostAsync()
     {
         var builder = new HostBuilder()
             .ConfigureWebHost(webHost =>
@@ -86,13 +86,13 @@ public class RedsysRestAndCofTests
                         options.Fuc = "999008881";
                         options.Terminal = "1";
                         options.SecretKey = SecretKey;
-                        options.UseDevMock = true; // Route to local DevMock
                     });
+                    services.AddBetterRedsysSimulator();
                 });
                 webHost.Configure(app =>
                 {
                     app.UseRouting();
-                    app.UseRedsysDevMock();
+                    app.UseRedsysSimulator();
                 });
             });
 
@@ -100,9 +100,9 @@ public class RedsysRestAndCofTests
     }
 
     [Fact]
-    public async Task ExecuteRefundAsync_ViaDevMock_ReturnsApprovedRefundNotification()
+    public async Task ExecuteRefundAsync_ViaSimulator_ReturnsApprovedRefundNotification()
     {
-        using var host = await BuildDevMockTestHostAsync();
+        using var host = await BuildSimulatorTestHostAsync();
         var testHttpClient = host.GetTestClient();
 
         var options = host.Services.GetRequiredService<IOptions<RedsysOptions>>();
@@ -121,9 +121,9 @@ public class RedsysRestAndCofTests
     }
 
     [Fact]
-    public async Task ConfirmPreauthorizationAsync_ViaDevMock_ReturnsApprovedNotification()
+    public async Task ConfirmPreauthorizationAsync_ViaSimulator_ReturnsApprovedNotification()
     {
-        using var host = await BuildDevMockTestHostAsync();
+        using var host = await BuildSimulatorTestHostAsync();
         var testHttpClient = host.GetTestClient();
 
         var options = host.Services.GetRequiredService<IOptions<RedsysOptions>>();
@@ -140,9 +140,9 @@ public class RedsysRestAndCofTests
     }
 
     [Fact]
-    public async Task CancelPreauthorizationAsync_ViaDevMock_ReturnsCancellationApprovedNotification()
+    public async Task CancelPreauthorizationAsync_ViaSimulator_ReturnsCancellationApprovedNotification()
     {
-        using var host = await BuildDevMockTestHostAsync();
+        using var host = await BuildSimulatorTestHostAsync();
         var testHttpClient = host.GetTestClient();
 
         var options = host.Services.GetRequiredService<IOptions<RedsysOptions>>();
@@ -159,9 +159,9 @@ public class RedsysRestAndCofTests
     }
 
     [Fact]
-    public async Task ExecuteStoredCardChargeAsync_ViaDevMock_ReturnsSuccessWithToken()
+    public async Task ExecuteStoredCardChargeAsync_ViaSimulator_ReturnsSuccessWithToken()
     {
-        using var host = await BuildDevMockTestHostAsync();
+        using var host = await BuildSimulatorTestHostAsync();
         var testHttpClient = host.GetTestClient();
 
         var options = host.Services.GetRequiredService<IOptions<RedsysOptions>>();
