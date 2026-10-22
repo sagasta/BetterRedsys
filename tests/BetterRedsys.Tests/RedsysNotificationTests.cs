@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 using BetterRedsys.Configuration;
 using BetterRedsys.Cryptography;
 using BetterRedsys.Models;
@@ -49,37 +48,37 @@ public class RedsysNotificationTests
     [InlineData("9915", "Transacción cancelada voluntariamente por el usuario.")]
     public void GetDescription_ReturnsAccurateMessages(string code, string expectedSubstring)
     {
-        string desc = RedsysResponseCatalog.GetDescription(code);
+        var desc = RedsysResponseCatalog.GetDescription(code);
         Assert.Contains(expectedSubstring, desc);
     }
 
     [Fact]
     public void DecodeNotification_ValidPayload_ParsesAllFieldsAndVerifiesSignature()
     {
-        string order = "0001";
-        string rawParamsJson = """
-        {
-            "Ds_Date": "22%2F10%2F2026",
-            "Ds_Hour": "15%3A30",
-            "Ds_Amount": "4500",
-            "Ds_Currency": "978",
-            "Ds_Order": "0001",
-            "Ds_MerchantCode": "999008881",
-            "Ds_Terminal": "001",
-            "Ds_Response": "0000",
-            "Ds_AuthorisationCode": "123456",
-            "Ds_TransactionType": "0",
-            "Ds_SecurePayment": "1",
-            "Ds_Card_Country": "724",
-            "Ds_Card_Type": "C",
-            "Ds_Card_Brand": "1",
-            "Ds_ProcessedPayMethod": "z"
-        }
-        """;
+        var order = "0001";
+        var rawParamsJson = """
+                            {
+                                "Ds_Date": "22%2F10%2F2026",
+                                "Ds_Hour": "15%3A30",
+                                "Ds_Amount": "4500",
+                                "Ds_Currency": "978",
+                                "Ds_Order": "0001",
+                                "Ds_MerchantCode": "999008881",
+                                "Ds_Terminal": "001",
+                                "Ds_Response": "0000",
+                                "Ds_AuthorisationCode": "123456",
+                                "Ds_TransactionType": "0",
+                                "Ds_SecurePayment": "1",
+                                "Ds_Card_Country": "724",
+                                "Ds_Card_Type": "C",
+                                "Ds_Card_Brand": "1",
+                                "Ds_ProcessedPayMethod": "z"
+                            }
+                            """;
 
-        string paramsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawParamsJson));
-        byte[] diversifiedKey = _crypto.DiversifyKey(_options.SecretKey, order);
-        string validSignature = _crypto.ComputeSignature(paramsBase64, diversifiedKey);
+        var paramsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawParamsJson));
+        var diversifiedKey = _crypto.DiversifyKey(_options.SecretKey, order);
+        var validSignature = _crypto.ComputeSignature(paramsBase64, diversifiedKey);
 
         var client = CreateClient();
         var notification = client.DecodeNotification(paramsBase64, validSignature);
@@ -100,9 +99,9 @@ public class RedsysNotificationTests
     [Fact]
     public void DecodeNotification_TamperedSignature_ThrowsInvalidOperationException()
     {
-        string rawParamsJson = """{"Ds_Order":"0002","Ds_Amount":"1000","Ds_Response":"0000"}""";
-        string paramsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawParamsJson));
-        string fakeSignature = "dGFtcGVyZWRfc2lnbmF0dXJlX2Zvcl90ZXN0";
+        var rawParamsJson = """{"Ds_Order":"0002","Ds_Amount":"1000","Ds_Response":"0000"}""";
+        var paramsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawParamsJson));
+        var fakeSignature = "dGFtcGVyZWRfc2lnbmF0dXJlX2Zvcl90ZXN0";
 
         var client = CreateClient();
 
@@ -113,21 +112,21 @@ public class RedsysNotificationTests
     [Fact]
     public void DecodeNotification_WithCofToken_ParsesCardAndIdentifierProperties()
     {
-        string order = "0003";
-        string rawParamsJson = """
-        {
-            "Ds_Order": "0003",
-            "Ds_Amount": "1999",
-            "Ds_Response": "0000",
-            "Ds_Merchant_Identifier": "TOKEN9876543210ABCDEF",
-            "Ds_Card_Number": "454881******0004",
-            "Ds_ExpiryDate": "2812"
-        }
-        """;
+        var order = "0003";
+        var rawParamsJson = """
+                            {
+                                "Ds_Order": "0003",
+                                "Ds_Amount": "1999",
+                                "Ds_Response": "0000",
+                                "Ds_Merchant_Identifier": "TOKEN9876543210ABCDEF",
+                                "Ds_Card_Number": "454881******0004",
+                                "Ds_ExpiryDate": "2812"
+                            }
+                            """;
 
-        string paramsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawParamsJson));
-        byte[] diversifiedKey = _crypto.DiversifyKey(_options.SecretKey, order);
-        string validSignature = _crypto.ComputeSignature(paramsBase64, diversifiedKey);
+        var paramsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawParamsJson));
+        var diversifiedKey = _crypto.DiversifyKey(_options.SecretKey, order);
+        var validSignature = _crypto.ComputeSignature(paramsBase64, diversifiedKey);
 
         var client = CreateClient();
         var notification = client.DecodeNotification(paramsBase64, validSignature);

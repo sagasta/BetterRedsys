@@ -35,7 +35,7 @@ public class RedsysPaymentBuilderTests
     [InlineData("799887766", "799887766")]
     public void SanitizeSpanishMobilePhone_ValidNumbers_Returns9Digits(string input, string expected)
     {
-        string sanitized = RedsysPaymentBuilder.SanitizeSpanishMobilePhone(input);
+        var sanitized = RedsysPaymentBuilder.SanitizeSpanishMobilePhone(input);
         Assert.Equal(expected, sanitized);
     }
 
@@ -89,7 +89,7 @@ public class RedsysPaymentBuilderTests
         Assert.Equal(RedsysEndpoints.Test, data.ActionUrl);
 
         // Validar que la firma generada por el builder es criptográficamente válida
-        bool isSigValid = _crypto.VerifySignature(data.MerchantParameters, data.Signature, _options.SecretKey, "123456");
+        var isSigValid = _crypto.VerifySignature(data.MerchantParameters, data.Signature, _options.SecretKey, "123456");
         Assert.True(isSigValid);
     }
 
@@ -97,7 +97,7 @@ public class RedsysPaymentBuilderTests
     public void ToAutoSubmitHtml_GeneratesSelfSubmittingHtmlForm()
     {
         var client = CreateClient();
-        string html = client.CreatePayment("99990001", 10.00m)
+        var html = client.CreatePayment("99990001", 10.00m)
             .WithCardOrBizum()
             .ToAutoSubmitHtml();
 

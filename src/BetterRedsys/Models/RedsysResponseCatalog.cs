@@ -37,7 +37,7 @@ public static class RedsysResponseCatalog
             return false;
         }
 
-        if (int.TryParse(responseCode, NumberStyles.Integer, CultureInfo.InvariantCulture, out int code))
+        if (int.TryParse(responseCode, NumberStyles.Integer, CultureInfo.InvariantCulture, out var code))
         {
             // Standard authorized payments (0 to 99)
             if (code is >= 0 and <= 99)
@@ -74,13 +74,13 @@ public static class RedsysResponseCatalog
         }
 
         // Direct dictionary match
-        if (dict.TryGetValue(responseCode, out string? description))
+        if (dict.TryGetValue(responseCode, out var description))
         {
             return description;
         }
 
         // Fallback to numeric ranges
-        if (int.TryParse(responseCode, NumberStyles.Integer, CultureInfo.InvariantCulture, out int code))
+        if (int.TryParse(responseCode, NumberStyles.Integer, CultureInfo.InvariantCulture, out var code))
         {
             return GetRangeFallbackText(code, responseCode, language);
         }
@@ -93,7 +93,7 @@ public static class RedsysResponseCatalog
     /// </summary>
     public static string GetDescription(string? responseCode, CultureInfo? culture)
     {
-        RedsysLanguage language = RedsysLanguageExtensions.FromCultureInfo(culture);
+        var language = RedsysLanguageExtensions.FromCultureInfo(culture);
         return GetDescription(responseCode, language);
     }
 

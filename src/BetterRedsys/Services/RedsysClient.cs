@@ -15,9 +15,8 @@ public sealed class RedsysClient(
     IRedsysCryptoService cryptoService,
     IHttpClientFactory? httpClientFactory = null) : IRedsysClient
 {
-    private readonly RedsysOptions _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+    private readonly RedsysOptions _options = options.Value ?? throw new ArgumentNullException(nameof(options));
     private readonly IRedsysCryptoService _cryptoService = cryptoService ?? throw new ArgumentNullException(nameof(cryptoService));
-    private readonly IHttpClientFactory? _httpClientFactory = httpClientFactory;
 
     /// <inheritdoc />
     public RedsysPaymentBuilder CreatePayment(string order, RedsysAmount amount)
@@ -28,7 +27,7 @@ public sealed class RedsysClient(
     /// <inheritdoc />
     public RedsysNotification DecodeNotification(string merchantParametersBase64, string signature)
     {
-        if (!TryDecodeNotification(merchantParametersBase64, signature, out RedsysNotification? notification, out string? errorMessage))
+        if (!TryDecodeNotification(merchantParametersBase64, signature, out var notification, out var errorMessage))
         {
             throw new InvalidOperationException($"Error validating Redsys notification: {errorMessage}");
         }
@@ -61,8 +60,8 @@ public sealed class RedsysClient(
         try
         {
             // Decode Base64 tolerating URL-safe variants
-            string normalizedParams = _cryptoService.NormalizeBase64(merchantParametersBase64);
-            byte[] jsonBytes = Convert.FromBase64String(normalizedParams);
+            var normalizedParams = _cryptoService.NormalizeBase64(merchantParametersBase64);
+            var jsonBytes = Convert.FromBase64String(normalizedParams);
 
             // Deserialize using System.Text.Json Source Generator (Native AOT)
             var dto = JsonSerializer.Deserialize(jsonBytes, RedsysJsonContext.Default.RedsysNotificationParametersDto);
@@ -74,7 +73,7 @@ public sealed class RedsysClient(
             }
 
             // Verify cryptographic signature
-            bool isValid = _cryptoService.VerifySignature(
+            var isValid = _cryptoService.VerifySignature(
                 merchantParametersBase64: merchantParametersBase64,
                 receivedSignature: signature,
                 secretKeyBase64: _options.SecretKey,
@@ -180,11 +179,11 @@ public sealed class RedsysClient(
             CofType = cofType
         };
 
-        byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(merchantDto, RedsysJsonContext.Default.RedsysMerchantParametersDto);
-        string merchantParametersBase64 = Convert.ToBase64String(jsonUtf8Bytes);
+        var jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(merchantDto, RedsysJsonContext.Default.RedsysMerchantParametersDto);
+        var merchantParametersBase64 = Convert.ToBase64String(jsonUtf8Bytes);
 
-        byte[] diversifiedKey = _cryptoService.DiversifyKey(_options.SecretKey, order);
-        string signature = _cryptoService.ComputeSignature(merchantParametersBase64, diversifiedKey);
+        var diversifiedKey = _cryptoService.DiversifyKey(_options.SecretKey, order);
+        var signature = _cryptoService.ComputeSignature(merchantParametersBase64, diversifiedKey);
 
         var requestDto = new RedsysRestRequestDto
         {
@@ -193,21 +192,21 @@ public sealed class RedsysClient(
             Signature = signature
         };
 
-        byte[] requestBytes = JsonSerializer.SerializeToUtf8Bytes(requestDto, RedsysJsonContext.Default.RedsysRestRequestDto);
+        var requestBytes = JsonSerializer.SerializeToUtf8Bytes(requestDto, RedsysJsonContext.Default.RedsysRestRequestDto);
 
-        string restUrl = _options.GetRestGatewayUrl();
-        using var httpClient = _httpClientFactory?.CreateClient("BetterRedsys") ?? new HttpClient();
+        var restUrl = _options.GetRestGatewayUrl();
+        using var httpClient = httpClientFactory?.CreateClient("BetterRedsys") ?? new HttpClient();
         using var content = new ByteArrayContent(requestBytes);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
         using var response = await httpClient.PostAsync(restUrl, content, cancellationToken);
-        byte[] responseBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        var responseBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
 
         var restResponse = JsonSerializer.Deserialize(responseBytes, RedsysJsonContext.Default.RedsysRestResponseDto);
 
         if (restResponse is null || string.IsNullOrWhiteSpace(restResponse.MerchantParameters) || string.IsNullOrWhiteSpace(restResponse.Signature))
         {
-            string err = restResponse?.ErrorCode ?? "Empty or invalid response from Redsys REST endpoint.";
+            var err = restResponse?.ErrorCode ?? "Empty or invalid response from Redsys REST endpoint.";
             throw new InvalidOperationException($"Redsys REST operation failed: {err}");
         }
 

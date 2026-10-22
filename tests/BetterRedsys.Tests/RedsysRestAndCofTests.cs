@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 using BetterRedsys.Configuration;
 using BetterRedsys.Cryptography;
 using BetterRedsys.Models;
@@ -42,10 +41,10 @@ public class RedsysRestAndCofTests
         var client = new RedsysClient(Options.Create(options), crypto);
 
         var data = client.CreatePayment("123456", 25.00m)
-            .WithInitialCardOnFile(RedsysCofType.Recurring)
+            .WithInitialCardOnFile()
             .ToFormData();
 
-        string json = Encoding.UTF8.GetString(Convert.FromBase64String(data.MerchantParameters));
+        var json = Encoding.UTF8.GetString(Convert.FromBase64String(data.MerchantParameters));
         Assert.Contains("\"DS_MERCHANT_COF_INI\":\"S\"", json);
         Assert.Contains("\"DS_MERCHANT_COF_TYPE\":\"R\"", json);
     }
@@ -66,7 +65,7 @@ public class RedsysRestAndCofTests
             .WithStoredCardCharge("TOKEN_ABC_999", RedsysCofType.OneClick)
             .ToFormData();
 
-        string json = Encoding.UTF8.GetString(Convert.FromBase64String(data.MerchantParameters));
+        var json = Encoding.UTF8.GetString(Convert.FromBase64String(data.MerchantParameters));
         Assert.Contains("\"DS_MERCHANT_IDENTIFIER\":\"TOKEN_ABC_999\"", json);
         Assert.Contains("\"DS_MERCHANT_COF_INI\":\"N\"", json);
         Assert.Contains("\"DS_MERCHANT_COF_TYPE\":\"C\"", json);
@@ -111,7 +110,7 @@ public class RedsysRestAndCofTests
         // Crear una factory que proporcione el test client de TestHost
         var client = new RedsysClient(options, crypto, new SimpleHttpClientFactory(testHttpClient));
 
-        RedsysNotification result = await client.ExecuteRefundAsync("2026102201", 15.00m);
+        var result = await client.ExecuteRefundAsync("2026102201", 15.00m);
 
         Assert.NotNull(result);
         Assert.True(result.IsSuccess);
@@ -131,7 +130,7 @@ public class RedsysRestAndCofTests
 
         var client = new RedsysClient(options, crypto, new SimpleHttpClientFactory(testHttpClient));
 
-        RedsysNotification result = await client.ConfirmPreauthorizationAsync("2026102202", 50.00m);
+        var result = await client.ConfirmPreauthorizationAsync("2026102202", 50.00m);
 
         Assert.NotNull(result);
         Assert.True(result.IsSuccess);
@@ -150,7 +149,7 @@ public class RedsysRestAndCofTests
 
         var client = new RedsysClient(options, crypto, new SimpleHttpClientFactory(testHttpClient));
 
-        RedsysNotification result = await client.CancelPreauthorizationAsync("2026102203", 50.00m);
+        var result = await client.CancelPreauthorizationAsync("2026102203", 50.00m);
 
         Assert.NotNull(result);
         Assert.True(result.IsSuccess);
@@ -169,7 +168,7 @@ public class RedsysRestAndCofTests
 
         var client = new RedsysClient(options, crypto, new SimpleHttpClientFactory(testHttpClient));
 
-        RedsysNotification result = await client.ExecuteStoredCardChargeAsync("2026102204", 9.99m, "TOK_USER_555");
+        var result = await client.ExecuteStoredCardChargeAsync("2026102204", 9.99m, "TOK_USER_555");
 
         Assert.NotNull(result);
         Assert.True(result.IsSuccess);

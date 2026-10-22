@@ -58,25 +58,25 @@ public class RedsysWebhookEndpointTests
         using var host = await BuildTestHostAsync(n => received = n);
         var client = host.GetTestClient();
 
-        string order = "0001";
-        string rawParamsJson = """
-        {
-            "Ds_Date": "22%2F10%2F2026",
-            "Ds_Hour": "16%3A00",
-            "Ds_Amount": "1999",
-            "Ds_Currency": "978",
-            "Ds_Order": "0001",
-            "Ds_MerchantCode": "999008881",
-            "Ds_Terminal": "001",
-            "Ds_Response": "0000",
-            "Ds_ProcessedPayMethod": "z"
-        }
-        """;
+        var order = "0001";
+        var rawParamsJson = """
+                            {
+                                "Ds_Date": "22%2F10%2F2026",
+                                "Ds_Hour": "16%3A00",
+                                "Ds_Amount": "1999",
+                                "Ds_Currency": "978",
+                                "Ds_Order": "0001",
+                                "Ds_MerchantCode": "999008881",
+                                "Ds_Terminal": "001",
+                                "Ds_Response": "0000",
+                                "Ds_ProcessedPayMethod": "z"
+                            }
+                            """;
 
         var crypto = new RedsysCryptoService();
-        string paramsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawParamsJson));
-        byte[] key = crypto.DiversifyKey(SecretKey, order);
-        string signature = crypto.ComputeSignature(paramsBase64, key);
+        var paramsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawParamsJson));
+        var key = crypto.DiversifyKey(SecretKey, order);
+        var signature = crypto.ComputeSignature(paramsBase64, key);
 
         var form = new FormUrlEncodedContent(new Dictionary<string, string>
         {
@@ -98,12 +98,12 @@ public class RedsysWebhookEndpointTests
     [Fact]
     public async Task WebhookEndpoint_InvalidSignature_Returns400BadRequest()
     {
-        bool wasInvoked = false;
+        var wasInvoked = false;
         using var host = await BuildTestHostAsync(_ => wasInvoked = true);
         var client = host.GetTestClient();
 
-        string paramsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("{\"Ds_Order\":\"0001\",\"Ds_Response\":\"0000\"}"));
-        string fakeSignature = "SU5WQUxJRF9TSUdOQVRVUkU=";
+        var paramsBase64 = Convert.ToBase64String("{\"Ds_Order\":\"0001\",\"Ds_Response\":\"0000\"}"u8.ToArray());
+        var fakeSignature = "SU5WQUxJRF9TSUdOQVRVUkU=";
 
         var form = new FormUrlEncodedContent(new Dictionary<string, string>
         {
@@ -121,7 +121,7 @@ public class RedsysWebhookEndpointTests
     [Fact]
     public async Task WebhookEndpoint_MissingParameters_Returns400BadRequest()
     {
-        bool wasInvoked = false;
+        var wasInvoked = false;
         using var host = await BuildTestHostAsync(_ => wasInvoked = true);
         var client = host.GetTestClient();
 

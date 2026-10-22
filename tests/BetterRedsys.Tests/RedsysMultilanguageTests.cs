@@ -100,16 +100,16 @@ public class RedsysMultilanguageTests
     [InlineData(RedsysLanguage.Basque)]
     public void RedsysResponseCatalog_All13Languages_ProvideAccurateDescriptions(RedsysLanguage language)
     {
-        string successDesc = RedsysResponseCatalog.GetDescription("0000", language);
+        var successDesc = RedsysResponseCatalog.GetDescription("0000", language);
         Assert.False(string.IsNullOrWhiteSpace(successDesc));
 
-        string error3Ds = RedsysResponseCatalog.GetDescription("0184", language);
+        var error3Ds = RedsysResponseCatalog.GetDescription("0184", language);
         Assert.False(string.IsNullOrWhiteSpace(error3Ds));
 
-        string timeout = RedsysResponseCatalog.GetDescription("0912", language);
+        var timeout = RedsysResponseCatalog.GetDescription("0912", language);
         Assert.False(string.IsNullOrWhiteSpace(timeout));
 
-        string rangeDesc = RedsysResponseCatalog.GetDescription("0155", language);
+        var rangeDesc = RedsysResponseCatalog.GetDescription("0155", language);
         Assert.False(string.IsNullOrWhiteSpace(rangeDesc));
     }
 
@@ -158,7 +158,7 @@ public class RedsysMultilanguageTests
         string expectedOrderLabel)
     {
         var client = CreateClient();
-        string html = client.CreatePayment("2026102201", 39.90m)
+        var html = client.CreatePayment("2026102201", 39.90m)
             .WithConsumerLanguage(language)
             .ToAutoSubmitHtml(language);
 

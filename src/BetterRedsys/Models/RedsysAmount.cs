@@ -50,7 +50,7 @@ public readonly record struct RedsysAmount : IComparable<RedsysAmount>, ICompara
             throw new ArgumentOutOfRangeException(nameof(euros), euros, "The amount cannot be negative.");
         }
 
-        long cents = (long)Math.Round(euros * 100m, MidpointRounding.AwayFromZero);
+        var cents = (long)Math.Round(euros * 100m, MidpointRounding.AwayFromZero);
         return new RedsysAmount(cents);
     }
 

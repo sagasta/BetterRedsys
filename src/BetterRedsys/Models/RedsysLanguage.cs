@@ -52,52 +52,55 @@ public enum RedsysLanguage
 /// </summary>
 public static class RedsysLanguageExtensions
 {
-    /// <summary>
-    /// Converts a <see cref="RedsysLanguage"/> to its official 3-digit Redsys code (e.g., "001" for Spanish, "002" for English).
-    /// </summary>
-    public static string ToRedsysCode(this RedsysLanguage language) => ((int)language).ToString("D3", CultureInfo.InvariantCulture);
-
-    /// <summary>
-    /// Gets the ISO language code suitable for HTML lang attribute (e.g., "es", "en", "ca", "fr").
-    /// </summary>
-    public static string GetIsoCode(this RedsysLanguage language) => language switch
+    extension(RedsysLanguage language)
     {
-        RedsysLanguage.Spanish => "es",
-        RedsysLanguage.English => "en",
-        RedsysLanguage.Catalan => "ca",
-        RedsysLanguage.French => "fr",
-        RedsysLanguage.German => "de",
-        RedsysLanguage.Dutch => "nl",
-        RedsysLanguage.Italian => "it",
-        RedsysLanguage.Swedish => "sv",
-        RedsysLanguage.Portuguese => "pt",
-        RedsysLanguage.Valencian => "ca-valencia",
-        RedsysLanguage.Polish => "pl",
-        RedsysLanguage.Galician => "gl",
-        RedsysLanguage.Basque => "eu",
-        _ => "es"
-    };
+        /// <summary>
+        /// Converts a <see cref="RedsysLanguage"/> to its official 3-digit Redsys code (e.g., "001" for Spanish, "002" for English).
+        /// </summary>
+        public string ToRedsysCode() => ((int)language).ToString("D3", CultureInfo.InvariantCulture);
 
-    /// <summary>
-    /// Gets the native display name of the language (e.g., "Español", "English", "Català", "Français").
-    /// </summary>
-    public static string GetNativeName(this RedsysLanguage language) => language switch
-    {
-        RedsysLanguage.Spanish => "Español",
-        RedsysLanguage.English => "English",
-        RedsysLanguage.Catalan => "Català",
-        RedsysLanguage.French => "Français",
-        RedsysLanguage.German => "Deutsch",
-        RedsysLanguage.Dutch => "Nederlands",
-        RedsysLanguage.Italian => "Italiano",
-        RedsysLanguage.Swedish => "Svenska",
-        RedsysLanguage.Portuguese => "Português",
-        RedsysLanguage.Valencian => "Valencià",
-        RedsysLanguage.Polish => "Polski",
-        RedsysLanguage.Galician => "Galego",
-        RedsysLanguage.Basque => "Euskara",
-        _ => "Español"
-    };
+        /// <summary>
+        /// Gets the ISO language code suitable for HTML lang attribute (e.g., "es", "en", "ca", "fr").
+        /// </summary>
+        public string GetIsoCode() => language switch
+        {
+            RedsysLanguage.Spanish => "es",
+            RedsysLanguage.English => "en",
+            RedsysLanguage.Catalan => "ca",
+            RedsysLanguage.French => "fr",
+            RedsysLanguage.German => "de",
+            RedsysLanguage.Dutch => "nl",
+            RedsysLanguage.Italian => "it",
+            RedsysLanguage.Swedish => "sv",
+            RedsysLanguage.Portuguese => "pt",
+            RedsysLanguage.Valencian => "ca-valencia",
+            RedsysLanguage.Polish => "pl",
+            RedsysLanguage.Galician => "gl",
+            RedsysLanguage.Basque => "eu",
+            _ => "es"
+        };
+
+        /// <summary>
+        /// Gets the native display name of the language (e.g., "Español", "English", "Català", "Français").
+        /// </summary>
+        public string GetNativeName() => language switch
+        {
+            RedsysLanguage.Spanish => "Español",
+            RedsysLanguage.English => "English",
+            RedsysLanguage.Catalan => "Català",
+            RedsysLanguage.French => "Français",
+            RedsysLanguage.German => "Deutsch",
+            RedsysLanguage.Dutch => "Nederlands",
+            RedsysLanguage.Italian => "Italiano",
+            RedsysLanguage.Swedish => "Svenska",
+            RedsysLanguage.Portuguese => "Português",
+            RedsysLanguage.Valencian => "Valencià",
+            RedsysLanguage.Polish => "Polski",
+            RedsysLanguage.Galician => "Galego",
+            RedsysLanguage.Basque => "Euskara",
+            _ => "Español"
+        };
+    }
 
     /// <summary>
     /// Parses an official Redsys language code into a <see cref="RedsysLanguage"/> enum. Defaults to <see cref="RedsysLanguage.Spanish"/> if unrecognized.
@@ -109,7 +112,7 @@ public static class RedsysLanguageExtensions
             return RedsysLanguage.Spanish;
         }
 
-        if (int.TryParse(code, NumberStyles.Integer, CultureInfo.InvariantCulture, out int numeric) &&
+        if (int.TryParse(code, NumberStyles.Integer, CultureInfo.InvariantCulture, out var numeric) &&
             Enum.IsDefined(typeof(RedsysLanguage), numeric))
         {
             return (RedsysLanguage)numeric;
@@ -128,7 +131,7 @@ public static class RedsysLanguageExtensions
             return RedsysLanguage.Spanish;
         }
 
-        string twoLetter = culture.TwoLetterISOLanguageName.ToLowerInvariant();
+        var twoLetter = culture.TwoLetterISOLanguageName.ToLowerInvariant();
         return twoLetter switch
         {
             "es" => RedsysLanguage.Spanish,

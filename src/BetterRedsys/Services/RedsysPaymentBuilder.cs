@@ -273,14 +273,14 @@ public sealed class RedsysPaymentBuilder
         };
 
         // Serialize using System.Text.Json Source Generator (Zero reflection, Native AOT)
-        byte[] jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(dto, RedsysJsonContext.Default.RedsysMerchantParametersDto);
-        string merchantParametersBase64 = Convert.ToBase64String(jsonUtf8Bytes);
+        var jsonUtf8Bytes = JsonSerializer.SerializeToUtf8Bytes(dto, RedsysJsonContext.Default.RedsysMerchantParametersDto);
+        var merchantParametersBase64 = Convert.ToBase64String(jsonUtf8Bytes);
 
         // Derive 3DES key with zero IV and compute HMAC-SHA256 signature
-        byte[] diversifiedKey = _cryptoService.DiversifyKey(_options.SecretKey, _order);
-        string signature = _cryptoService.ComputeSignature(merchantParametersBase64, diversifiedKey);
+        var diversifiedKey = _cryptoService.DiversifyKey(_options.SecretKey, _order);
+        var signature = _cryptoService.ComputeSignature(merchantParametersBase64, diversifiedKey);
 
-        string actionUrl = _options.GetPaymentGatewayUrl();
+        var actionUrl = _options.GetPaymentGatewayUrl();
 
         return new RedsysPaymentResponseData(
             SignatureVersion: "HMAC_SHA256_V1",
@@ -299,26 +299,26 @@ public sealed class RedsysPaymentBuilder
     /// <param name="submitButtonText">Optional override for the fallback submit button text.</param>
     public string ToAutoSubmitHtml(RedsysLanguage? language = null, string? submitButtonText = null)
     {
-        RedsysPaymentResponseData data = ToFormData();
+        var data = ToFormData();
 
-        RedsysLanguage effectiveLang = language ?? RedsysLanguageExtensions.FromRedsysCode(_consumerLanguage);
-        RedsysHtmlTexts texts = RedsysBusinessTexts.GetHtmlTexts(effectiveLang);
+        var effectiveLang = language ?? RedsysLanguageExtensions.FromRedsysCode(_consumerLanguage);
+        var texts = RedsysBusinessTexts.GetHtmlTexts(effectiveLang);
 
-        string pageTitle = texts.PageTitle;
-        string heading = texts.Heading;
-        string subheading = texts.Subheading;
-        string labelOrder = texts.OrderLabel;
-        string labelAmount = texts.AmountLabel;
-        string buttonText = submitButtonText ?? texts.DefaultButtonText;
-        string htmlLang = effectiveLang.GetIsoCode();
+        var pageTitle = texts.PageTitle;
+        var heading = texts.Heading;
+        var subheading = texts.Subheading;
+        var labelOrder = texts.OrderLabel;
+        var labelAmount = texts.AmountLabel;
+        var buttonText = submitButtonText ?? texts.DefaultButtonText;
+        var htmlLang = effectiveLang.GetIsoCode();
 
-        string actionUrl = WebUtility.HtmlEncode(data.ActionUrl);
-        string signatureVersion = WebUtility.HtmlEncode(data.SignatureVersion);
-        string merchantParameters = WebUtility.HtmlEncode(data.MerchantParameters);
-        string signature = WebUtility.HtmlEncode(data.Signature);
-        string escapedButtonText = WebUtility.HtmlEncode(buttonText);
-        string displayAmount = WebUtility.HtmlEncode(data.Amount.ToDisplayString());
-        string escapedOrder = WebUtility.HtmlEncode(data.Order);
+        var actionUrl = WebUtility.HtmlEncode(data.ActionUrl);
+        var signatureVersion = WebUtility.HtmlEncode(data.SignatureVersion);
+        var merchantParameters = WebUtility.HtmlEncode(data.MerchantParameters);
+        var signature = WebUtility.HtmlEncode(data.Signature);
+        var escapedButtonText = WebUtility.HtmlEncode(buttonText);
+        var displayAmount = WebUtility.HtmlEncode(data.Amount.ToDisplayString());
+        var escapedOrder = WebUtility.HtmlEncode(data.Order);
 
         var sb = new StringBuilder();
         sb.AppendLine("<!DOCTYPE html>");
@@ -391,7 +391,7 @@ public sealed class RedsysPaymentBuilder
                 nameof(order));
         }
 
-        for (int i = 0; i < 4; i++)
+        for (var i = 0; i < 4; i++)
         {
             if (!char.IsAsciiDigit(order[i]))
             {
@@ -417,7 +417,7 @@ public sealed class RedsysPaymentBuilder
         ArgumentException.ThrowIfNullOrWhiteSpace(phone);
 
         // Extract only ASCII digits
-        string digits = new string(phone.Where(char.IsAsciiDigit).ToArray());
+        var digits = new string(phone.Where(char.IsAsciiDigit).ToArray());
 
         // Handle common international country code prefixes (+34, 0034, 34)
         if (digits.StartsWith("0034") && digits.Length == 13)

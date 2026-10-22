@@ -12,72 +12,70 @@ namespace BetterRedsys.Endpoints;
 /// </summary>
 public static class RedsysEndpointRouteBuilderExtensions
 {
-    /// <summary>
-    /// Maps an asynchronous webhook endpoint for Redsys online notifications.
-    /// Automatically validates the cryptographic signature and delivers a strongly-typed <see cref="RedsysNotification"/> instance.
-    /// Responds with HTTP 400 Bad Request if parameters are missing or the signature is invalid.
-    /// </summary>
     /// <param name="endpoints">The endpoint route builder.</param>
-    /// <param name="pattern">The HTTP route pattern (e.g., "/api/payments/webhook").</param>
-    /// <param name="handler">Business delegate that receives the clean and validated notification.</param>
-    /// <returns>The configured <see cref="RouteHandlerBuilder"/>.</returns>
-    [UnconditionalSuppressMessage("Trimming", "IL2026:MembersAnnotatedWithRequiresUnreferencedCode",
-        Justification = "The delegate signature is statically typed and known.")]
-    [UnconditionalSuppressMessage("AOT", "IL3050:MembersAnnotatedWithRequiresDynamicCode",
-        Justification = "Minimal APIs in .NET generate or support statically bound route delegates.")]
-    public static RouteHandlerBuilder MapRedsysWebhook(
-        this IEndpointRouteBuilder endpoints,
-        string pattern,
-        Func<RedsysNotification, Task<IResult>> handler)
+    extension(IEndpointRouteBuilder endpoints)
     {
-        return endpoints.MapPost(pattern, async (HttpContext context, IRedsysClient client, CancellationToken ct) =>
+        /// <summary>
+        /// Maps an asynchronous webhook endpoint for Redsys online notifications.
+        /// Automatically validates the cryptographic signature and delivers a strongly-typed <see cref="RedsysNotification"/> instance.
+        /// Responds with HTTP 400 Bad Request if parameters are missing or the signature is invalid.
+        /// </summary>
+        /// <param name="pattern">The HTTP route pattern (e.g., "/api/payments/webhook").</param>
+        /// <param name="handler">Business delegate that receives the clean and validated notification.</param>
+        /// <returns>The configured <see cref="RouteHandlerBuilder"/>.</returns>
+        [UnconditionalSuppressMessage("Trimming", "IL2026:MembersAnnotatedWithRequiresUnreferencedCode",
+            Justification = "The delegate signature is statically typed and known.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050:MembersAnnotatedWithRequiresDynamicCode",
+            Justification = "Minimal APIs in .NET generate or support statically bound route delegates.")]
+        public RouteHandlerBuilder MapRedsysWebhook(string pattern,
+            Func<RedsysNotification, Task<IResult>> handler)
         {
-            (string? merchantParameters, string? signature) = await ExtractRedsysParametersAsync(context, ct);
-
-            if (string.IsNullOrWhiteSpace(merchantParameters) || string.IsNullOrWhiteSpace(signature))
-            {
-                return Results.BadRequest(new
+            return endpoints.MapPost(pattern, async (HttpContext context, IRedsysClient client, CancellationToken ct) =>
                 {
-                    error = "Required Redsys parameters not found.",
-                    error_es = "Parámetros obligatorios de Redsys no encontrados.",
-                    message = "The request must contain Ds_MerchantParameters and Ds_Signature."
-                });
-            }
+                    var (merchantParameters, signature) = await ExtractRedsysParametersAsync(context, ct);
 
-            if (!client.TryDecodeNotification(merchantParameters, signature, out RedsysNotification? notification, out string? errorMessage))
-            {
-                return Results.BadRequest(new
-                {
-                    error = "Invalid Redsys cryptographic signature or corrupted data.",
-                    error_es = "Firma de Redsys inválida o parámetros adulterados.",
-                    detail = errorMessage
-                });
-            }
+                    if (string.IsNullOrWhiteSpace(merchantParameters) || string.IsNullOrWhiteSpace(signature))
+                    {
+                        return Results.BadRequest(new
+                        {
+                            error = "Required Redsys parameters not found.",
+                            error_es = "Parámetros obligatorios de Redsys no encontrados.",
+                            message = "The request must contain Ds_MerchantParameters and Ds_Signature."
+                        });
+                    }
 
-            return await handler(notification!);
-        })
-        .DisableAntiforgery()
-        .WithName("RedsysWebhookAsync")
-        .WithDisplayName("Redsys Notification Webhook")
-        .WithDescription("Receives and cryptographically verifies online Redsys and Bizum notifications.");
-    }
+                    if (!client.TryDecodeNotification(merchantParameters, signature, out var notification, out var errorMessage))
+                    {
+                        return Results.BadRequest(new
+                        {
+                            error = "Invalid Redsys cryptographic signature or corrupted data.",
+                            error_es = "Firma de Redsys inválida o parámetros adulterados.",
+                            detail = errorMessage
+                        });
+                    }
 
-    /// <summary>
-    /// Maps a synchronous webhook endpoint for Redsys online notifications.
-    /// </summary>
-    /// <param name="endpoints">The endpoint route builder.</param>
-    /// <param name="pattern">The HTTP route pattern (e.g., "/api/payments/webhook").</param>
-    /// <param name="handler">Synchronous business delegate that receives the clean and validated notification.</param>
-    [UnconditionalSuppressMessage("Trimming", "IL2026:MembersAnnotatedWithRequiresUnreferencedCode",
-        Justification = "The delegate signature is statically typed and known.")]
-    [UnconditionalSuppressMessage("AOT", "IL3050:MembersAnnotatedWithRequiresDynamicCode",
-        Justification = "Minimal APIs in .NET generate or support statically bound route delegates.")]
-    public static RouteHandlerBuilder MapRedsysWebhook(
-        this IEndpointRouteBuilder endpoints,
-        string pattern,
-        Func<RedsysNotification, IResult> handler)
-    {
-        return endpoints.MapRedsysWebhook(pattern, notification => Task.FromResult(handler(notification)));
+                    return await handler(notification!);
+                })
+                .DisableAntiforgery()
+                .WithName("RedsysWebhookAsync")
+                .WithDisplayName("Redsys Notification Webhook")
+                .WithDescription("Receives and cryptographically verifies online Redsys and Bizum notifications.");
+        }
+
+        /// <summary>
+        /// Maps a synchronous webhook endpoint for Redsys online notifications.
+        /// </summary>
+        /// <param name="pattern">The HTTP route pattern (e.g., "/api/payments/webhook").</param>
+        /// <param name="handler">Synchronous business delegate that receives the clean and validated notification.</param>
+        [UnconditionalSuppressMessage("Trimming", "IL2026:MembersAnnotatedWithRequiresUnreferencedCode",
+            Justification = "The delegate signature is statically typed and known.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050:MembersAnnotatedWithRequiresDynamicCode",
+            Justification = "Minimal APIs in .NET generate or support statically bound route delegates.")]
+        public RouteHandlerBuilder MapRedsysWebhook(string pattern,
+            Func<RedsysNotification, IResult> handler)
+        {
+            return endpoints.MapRedsysWebhook(pattern, notification => Task.FromResult(handler(notification)));
+        }
     }
 
     /// <summary>

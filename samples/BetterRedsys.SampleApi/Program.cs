@@ -37,7 +37,7 @@ if (app.Environment.IsDevelopment())
 // Devuelve un DTO con Ds_MerchantParameters y Ds_Signature para montar el formulario en el cliente
 app.MapPost("/api/checkout/crear-pago", (IRedsysClient redsysClient, CheckoutRequest request) =>
 {
-    RedsysPaymentResponseData paymentData = redsysClient
+    var paymentData = redsysClient
         .CreatePayment(request.Order, request.Amount)
         .WithDescription(request.Description ?? "Compra en Tienda Online")
         .WithCardOrBizum() // Permite tanto Tarjeta como Bizum
@@ -51,10 +51,10 @@ app.MapPost("/api/checkout/crear-pago", (IRedsysClient redsysClient, CheckoutReq
 // 4. Endpoint para suscripción con almacenamiento de tarjeta (Card-On-File / Tokenización)
 app.MapPost("/api/checkout/iniciar-suscripcion", (IRedsysClient redsysClient, SubscriptionRequest request) =>
 {
-    RedsysPaymentResponseData paymentData = redsysClient
+    var paymentData = redsysClient
         .CreatePayment(request.Order, request.FirstMonthAmount)
         .WithDescription($"Alta de suscripción: {request.PlanName}")
-        .WithInitialCardOnFile(RedsysCofType.Recurring) // Solicita tokenización COF recurrente
+        .WithInitialCardOnFile() // Solicita tokenización COF recurrente
         .WithSuccessUrl($"/pedido-exitoso?order={request.Order}")
         .WithCancelUrl($"/pedido-cancelado?order={request.Order}")
         .ToFormData();
@@ -65,7 +65,7 @@ app.MapPost("/api/checkout/iniciar-suscripcion", (IRedsysClient redsysClient, Su
 // 5. Endpoint para cobrar cuota recurrente usando token guardado (Server-to-Server REST)
 app.MapPost("/api/suscripciones/cobrar-cuota", async (IRedsysClient redsysClient, RecurringChargeRequest request) =>
 {
-    RedsysNotification response = await redsysClient.ExecuteStoredCardChargeAsync(
+    var response = await redsysClient.ExecuteStoredCardChargeAsync(
         order: request.Order,
         amount: request.Amount,
         cardToken: request.CardToken,
@@ -80,7 +80,7 @@ app.MapPost("/api/suscripciones/cobrar-cuota", async (IRedsysClient redsysClient
 // 6. Endpoint para devoluciones directas (Refund REST server-to-server)
 app.MapPost("/api/pedidos/{order}/devolver", async (string order, RefundRequest request, IRedsysClient redsysClient) =>
 {
-    RedsysNotification response = await redsysClient.ExecuteRefundAsync(
+    var response = await redsysClient.ExecuteRefundAsync(
         order: order,
         amount: request.Amount
     );
@@ -94,7 +94,7 @@ app.MapPost("/api/pedidos/{order}/devolver", async (string order, RefundRequest 
 // Devuelve una página HTML autoejecutable que envía el formulario automáticamente al cargar
 app.MapGet("/checkout/pagar/{order}", (string order, IRedsysClient redsysClient) =>
 {
-    string html = redsysClient
+    var html = redsysClient
         .CreatePayment(order, 49.95m)
         .WithBizum() // Forzar Bizum
         .WithCustomerPhone("+34 612 345 678")
@@ -106,7 +106,7 @@ app.MapGet("/checkout/pagar/{order}", (string order, IRedsysClient redsysClient)
 
 // 8. Minimal API Webhook: Recibe la notificación online server-to-server de Redsys / Bizum
 // Valida la firma criptográfica automáticamente antes de entrar al handler (400 Bad Request si es inválida)
-app.MapRedsysWebhook("/api/pagos/webhook", async (RedsysNotification notification) =>
+app.MapRedsysWebhook("/api/pagos/webhook", async notification =>
 {
     // Loguear detalles de la transacción
     Console.WriteLine($"[Redsys Webhook] Pedido: {notification.Order}, Importe: {notification.Amount.ToDisplayString()}");

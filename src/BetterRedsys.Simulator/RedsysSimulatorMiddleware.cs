@@ -54,8 +54,8 @@ public sealed class RedsysSimulatorMiddleware
             return;
         }
 
-        string path = context.Request.Path.Value ?? string.Empty;
-        string mockBasePath = _simulatorOptions.Path.TrimEnd('/');
+        var path = context.Request.Path.Value ?? string.Empty;
+        var mockBasePath = _simulatorOptions.Path.TrimEnd('/');
 
         // Server-to-server REST simulation endpoint (trataPeticionREST)
         if (path.Equals(_simulatorOptions.RestPath, StringComparison.OrdinalIgnoreCase) &&
@@ -95,7 +95,7 @@ public sealed class RedsysSimulatorMiddleware
         try
         {
             using var reader = new StreamReader(context.Request.Body, Encoding.UTF8);
-            string body = await reader.ReadToEndAsync();
+            var body = await reader.ReadToEndAsync();
             var restReq = JsonSerializer.Deserialize(body, SimulatorRestJsonContext.Default.SimulatorRestRequestDto);
 
             if (restReq is null || string.IsNullOrWhiteSpace(restReq.MerchantParameters))
@@ -104,8 +104,8 @@ public sealed class RedsysSimulatorMiddleware
                 return;
             }
 
-            string normalizedParams = _cryptoService.NormalizeBase64(restReq.MerchantParameters);
-            byte[] paramBytes = Convert.FromBase64String(normalizedParams);
+            var normalizedParams = _cryptoService.NormalizeBase64(restReq.MerchantParameters);
+            var paramBytes = Convert.FromBase64String(normalizedParams);
             var merchantDto = JsonSerializer.Deserialize(paramBytes, SimulatorRestJsonContext.Default.SimulatorRestMerchantDto);
 
             if (merchantDto is null || string.IsNullOrWhiteSpace(merchantDto.Order))
@@ -115,7 +115,7 @@ public sealed class RedsysSimulatorMiddleware
             }
 
             // Determine response code based on transaction type
-            string responseCode = merchantDto.TransactionType switch
+            var responseCode = merchantDto.TransactionType switch
             {
                 "3" => "0900", // Refund approved
                 "2" => "0000", // Preauthorization confirmed
@@ -142,11 +142,11 @@ public sealed class RedsysSimulatorMiddleware
                 MerchantIdentifier = merchantDto.Identifier ?? "TOK_MOCK_123456789"
             };
 
-            byte[] notifBytes = JsonSerializer.SerializeToUtf8Bytes(notificationDto, SimulatorRestJsonContext.Default.SimulatorRestNotificationDto);
-            string notifBase64 = Convert.ToBase64String(notifBytes);
+            var notifBytes = JsonSerializer.SerializeToUtf8Bytes(notificationDto, SimulatorRestJsonContext.Default.SimulatorRestNotificationDto);
+            var notifBase64 = Convert.ToBase64String(notifBytes);
 
-            byte[] diversifiedKey = _cryptoService.DiversifyKey(_redsysOptions.SecretKey, merchantDto.Order);
-            string signature = _cryptoService.ComputeSignature(notifBase64, diversifiedKey);
+            var diversifiedKey = _cryptoService.DiversifyKey(_redsysOptions.SecretKey, merchantDto.Order);
+            var signature = _cryptoService.ComputeSignature(notifBase64, diversifiedKey);
 
             var restResponse = new SimulatorRestResponseDto
             {
@@ -179,8 +179,8 @@ public sealed class RedsysSimulatorMiddleware
         {
             try
             {
-                string normalized = _cryptoService.NormalizeBase64(merchantParametersBase64);
-                byte[] jsonBytes = Convert.FromBase64String(normalized);
+                var normalized = _cryptoService.NormalizeBase64(merchantParametersBase64);
+                var jsonBytes = Convert.FromBase64String(normalized);
                 parameters = JsonSerializer.Deserialize(jsonBytes, SimulatorRestJsonContext.Default.SimulatorRestMerchantDto);
             }
             catch (Exception ex)
@@ -190,14 +190,14 @@ public sealed class RedsysSimulatorMiddleware
         }
 
         context.Response.ContentType = "text/html; charset=utf-8";
-        string html = GenerateSimulatorHtml(parameters, context.Request);
+        var html = GenerateSimulatorHtml(parameters, context.Request);
         await context.Response.WriteAsync(html);
     }
 
     private async Task RenderMockLandingUiAsync(HttpContext context)
     {
         context.Response.ContentType = "text/html; charset=utf-8";
-        string html = GenerateSimulatorLandingHtml();
+        var html = GenerateSimulatorLandingHtml();
         await context.Response.WriteAsync(html);
     }
 
@@ -206,7 +206,7 @@ public sealed class RedsysSimulatorMiddleware
         try
         {
             using var reader = new StreamReader(context.Request.Body, Encoding.UTF8);
-            string body = await reader.ReadToEndAsync();
+            var body = await reader.ReadToEndAsync();
             var simRequest = JsonSerializer.Deserialize(body, SimulatorJsonContext.Default.SimulatorSimulationRequest);
 
             if (simRequest is null || string.IsNullOrWhiteSpace(simRequest.Order))
@@ -218,9 +218,9 @@ public sealed class RedsysSimulatorMiddleware
             }
 
             // Construct simulated notification parameters
-            string now = DateTime.Now.ToString("dd/MM/yyyy");
-            string hour = DateTime.Now.ToString("HH:mm");
-            bool isSuccess = RedsysResponseCatalog.IsSuccess(simRequest.ResponseCode);
+            var now = DateTime.Now.ToString("dd/MM/yyyy");
+            var hour = DateTime.Now.ToString("HH:mm");
+            var isSuccess = RedsysResponseCatalog.IsSuccess(simRequest.ResponseCode);
 
             var notificationDto = new SimulatorRestNotificationDto
             {
@@ -243,15 +243,15 @@ public sealed class RedsysSimulatorMiddleware
             };
 
             // Serialize parameters
-            byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(notificationDto, SimulatorRestJsonContext.Default.SimulatorRestNotificationDto);
-            string notifParamsBase64 = Convert.ToBase64String(jsonBytes);
+            var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(notificationDto, SimulatorRestJsonContext.Default.SimulatorRestNotificationDto);
+            var notifParamsBase64 = Convert.ToBase64String(jsonBytes);
 
             // Compute authentic HMAC-SHA256 signature
-            byte[] diversifiedKey = _cryptoService.DiversifyKey(_redsysOptions.SecretKey, simRequest.Order);
-            string signature = _cryptoService.ComputeSignature(notifParamsBase64, diversifiedKey);
+            var diversifiedKey = _cryptoService.DiversifyKey(_redsysOptions.SecretKey, simRequest.Order);
+            var signature = _cryptoService.ComputeSignature(notifParamsBase64, diversifiedKey);
 
             // Determine target webhook URL and apply SSRF protection
-            string targetWebhookUrl = simRequest.MerchantUrl ?? _redsysOptions.MerchantUrl ?? string.Empty;
+            var targetWebhookUrl = simRequest.MerchantUrl ?? _redsysOptions.MerchantUrl ?? string.Empty;
             if (string.IsNullOrWhiteSpace(targetWebhookUrl))
             {
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
@@ -263,13 +263,13 @@ public sealed class RedsysSimulatorMiddleware
             // Compose with local origin if relative, or validate host if absolute to prevent SSRF
             if (Uri.TryCreate(targetWebhookUrl, UriKind.Relative, out _))
             {
-                string baseUrl = $"{context.Request.Scheme}://{context.Request.Host}";
+                var baseUrl = $"{context.Request.Scheme}://{context.Request.Host}";
                 targetWebhookUrl = $"{baseUrl}/{targetWebhookUrl.TrimStart('/')}";
             }
-            else if (Uri.TryCreate(targetWebhookUrl, UriKind.Absolute, out Uri? absoluteUri))
+            else if (Uri.TryCreate(targetWebhookUrl, UriKind.Absolute, out var absoluteUri))
             {
-                bool isAllowedHost = string.Equals(absoluteUri.Host, context.Request.Host.Host, StringComparison.OrdinalIgnoreCase) ||
-                                     string.Equals(targetWebhookUrl, _redsysOptions.MerchantUrl, StringComparison.OrdinalIgnoreCase);
+                var isAllowedHost = string.Equals(absoluteUri.Host, context.Request.Host.Host, StringComparison.OrdinalIgnoreCase) ||
+                                    string.Equals(targetWebhookUrl, _redsysOptions.MerchantUrl, StringComparison.OrdinalIgnoreCase);
 
                 if (!isAllowedHost)
                 {
@@ -298,10 +298,10 @@ public sealed class RedsysSimulatorMiddleware
 
             _logger.LogInformation("BetterRedsys Simulator: Dispatching simulated webhook to {Url} with result {Code}", targetWebhookUrl, simRequest.ResponseCode);
 
-            HttpResponseMessage response = await httpClient.PostAsync(targetWebhookUrl, formContent);
-            string responseText = await response.Content.ReadAsStringAsync();
+            var response = await httpClient.PostAsync(targetWebhookUrl, formContent);
+            var responseText = await response.Content.ReadAsStringAsync();
 
-            string redirectUrl = isSuccess ? (simRequest.UrlOk ?? _redsysOptions.UrlOk ?? "/") : (simRequest.UrlKo ?? _redsysOptions.UrlKo ?? "/");
+            var redirectUrl = isSuccess ? (simRequest.UrlOk ?? _redsysOptions.UrlOk ?? "/") : (simRequest.UrlKo ?? _redsysOptions.UrlKo ?? "/");
 
             var okResponse = new SimulatorSimulationResponse(
                 Success: true,
@@ -322,15 +322,15 @@ public sealed class RedsysSimulatorMiddleware
 
     private string GenerateSimulatorHtml(SimulatorRestMerchantDto? p, HttpRequest req)
     {
-        string rawOrder = p?.Order ?? "000000";
-        string rawAmount = p?.Amount ?? "0";
-        string rawMerchantCode = p?.MerchantCode ?? _redsysOptions.Fuc;
-        string rawTerminal = p?.Terminal ?? _redsysOptions.Terminal;
-        string rawCurrency = p?.Currency ?? _redsysOptions.Currency;
-        string rawMerchantUrl = p?.MerchantUrl ?? _redsysOptions.MerchantUrl ?? "";
-        string rawUrlOk = p?.UrlOk ?? _redsysOptions.UrlOk ?? "";
-        string rawUrlKo = p?.UrlKo ?? _redsysOptions.UrlKo ?? "";
-        string rawMerchantData = p?.MerchantData ?? "";
+        var rawOrder = p?.Order ?? "000000";
+        var rawAmount = p?.Amount ?? "0";
+        var rawMerchantCode = p?.MerchantCode ?? _redsysOptions.Fuc;
+        var rawTerminal = p?.Terminal ?? _redsysOptions.Terminal;
+        var rawCurrency = p?.Currency ?? _redsysOptions.Currency;
+        var rawMerchantUrl = p?.MerchantUrl ?? _redsysOptions.MerchantUrl ?? "";
+        var rawUrlOk = p?.UrlOk ?? _redsysOptions.UrlOk ?? "";
+        var rawUrlKo = p?.UrlKo ?? _redsysOptions.UrlKo ?? "";
+        var rawMerchantData = p?.MerchantData ?? "";
 
         var initialData = new SimulatorSimulationInitialData(
             rawOrder,
@@ -343,27 +343,27 @@ public sealed class RedsysSimulatorMiddleware
             rawUrlKo,
             rawMerchantData);
 
-        string initialDataJson = JsonSerializer.Serialize(initialData, SimulatorJsonContext.Default.SimulatorSimulationInitialData);
+        var initialDataJson = JsonSerializer.Serialize(initialData, SimulatorJsonContext.Default.SimulatorSimulationInitialData);
 
-        long.TryParse(rawAmount, out long cents);
+        long.TryParse(rawAmount, out var cents);
         var amount = new RedsysAmount(cents);
 
-        string order = WebUtility.HtmlEncode(rawOrder);
-        string displayAmount = WebUtility.HtmlEncode(amount.ToDisplayString());
-        string merchantCode = WebUtility.HtmlEncode(rawMerchantCode);
-        string terminal = WebUtility.HtmlEncode(rawTerminal);
-        string currency = WebUtility.HtmlEncode(rawCurrency);
-        string payMethods = WebUtility.HtmlEncode(p?.PayMethods ?? "Tarjeta / Card");
-        string phone = WebUtility.HtmlEncode(p?.CustomerMobile ?? "(Not specified / No especificado)");
-        string desc = WebUtility.HtmlEncode(p?.ProductDescription ?? "No description / Sin descripción");
-        string merchantUrl = WebUtility.HtmlEncode(rawMerchantUrl);
-        string urlOk = WebUtility.HtmlEncode(rawUrlOk);
-        string urlKo = WebUtility.HtmlEncode(rawUrlKo);
-        string consumerLangCode = WebUtility.HtmlEncode(p?.ConsumerLanguage ?? "001");
-        RedsysLanguage consumerLang = RedsysLanguageExtensions.FromRedsysCode(p?.ConsumerLanguage ?? "001");
-        bool isBizumAvailable = (p?.PayMethods ?? "").Contains('z', StringComparison.OrdinalIgnoreCase);
+        var order = WebUtility.HtmlEncode(rawOrder);
+        var displayAmount = WebUtility.HtmlEncode(amount.ToDisplayString());
+        var merchantCode = WebUtility.HtmlEncode(rawMerchantCode);
+        var terminal = WebUtility.HtmlEncode(rawTerminal);
+        _ = WebUtility.HtmlEncode(rawCurrency);
+        var payMethods = WebUtility.HtmlEncode(p?.PayMethods ?? "Tarjeta / Card");
+        var phone = WebUtility.HtmlEncode(p?.CustomerMobile ?? "(Not specified / No especificado)");
+        var desc = WebUtility.HtmlEncode(p?.ProductDescription ?? "No description / Sin descripción");
+        var merchantUrl = WebUtility.HtmlEncode(rawMerchantUrl);
+        var urlOk = WebUtility.HtmlEncode(rawUrlOk);
+        var urlKo = WebUtility.HtmlEncode(rawUrlKo);
+        var consumerLangCode = WebUtility.HtmlEncode(p?.ConsumerLanguage ?? "001");
+        var consumerLang = RedsysLanguageExtensions.FromRedsysCode(p?.ConsumerLanguage ?? "001");
+        var isBizumAvailable = (p?.PayMethods ?? "").Contains('z', StringComparison.OrdinalIgnoreCase);
 
-        string dispatchUrl = WebUtility.HtmlEncode($"{req.PathBase}{_simulatorOptions.Path.TrimEnd('/')}/dispatch-webhook");
+        var dispatchUrl = WebUtility.HtmlEncode($"{req.PathBase}{_simulatorOptions.Path.TrimEnd('/')}/dispatch-webhook");
 
         return $$"""
         <!DOCTYPE html>
@@ -859,9 +859,7 @@ internal sealed class SimulatorRestNotificationDto
 [JsonSerializable(typeof(SimulatorSimulationInitialData))]
 [JsonSerializable(typeof(SimulatorSimulationRequest))]
 [JsonSerializable(typeof(SimulatorSimulationResponse))]
-internal sealed partial class SimulatorJsonContext : JsonSerializerContext
-{
-}
+internal sealed partial class SimulatorJsonContext : JsonSerializerContext;
 
 /// <summary>
 /// System.Text.Json context for simulator REST operations simulation (Native AOT ready).
@@ -871,6 +869,4 @@ internal sealed partial class SimulatorJsonContext : JsonSerializerContext
 [JsonSerializable(typeof(SimulatorRestResponseDto))]
 [JsonSerializable(typeof(SimulatorRestMerchantDto))]
 [JsonSerializable(typeof(SimulatorRestNotificationDto))]
-internal sealed partial class SimulatorRestJsonContext : JsonSerializerContext
-{
-}
+internal sealed partial class SimulatorRestJsonContext : JsonSerializerContext;

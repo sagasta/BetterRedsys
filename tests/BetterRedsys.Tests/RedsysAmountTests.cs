@@ -53,8 +53,8 @@ public class RedsysAmountTests
         RedsysAmount a = 10.00m;
         RedsysAmount b = 5.50m;
 
-        RedsysAmount sum = a + b;
-        RedsysAmount diff = a - b;
+        var sum = a + b;
+        var diff = a - b;
 
         Assert.Equal(1550, sum.Cents);
         Assert.Equal(450, diff.Cents);

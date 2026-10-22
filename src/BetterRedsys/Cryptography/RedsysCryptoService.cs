@@ -14,17 +14,17 @@ public sealed class RedsysCryptoService : IRedsysCryptoService
         ArgumentException.ThrowIfNullOrWhiteSpace(secretKeyBase64);
         ArgumentException.ThrowIfNullOrWhiteSpace(order);
 
-        string normalizedKey = NormalizeBase64(secretKeyBase64);
-        byte[] keyBytes = Convert.FromBase64String(normalizedKey);
+        var normalizedKey = NormalizeBase64(secretKeyBase64);
+        var keyBytes = Convert.FromBase64String(normalizedKey);
 
         try
         {
-            byte[] orderBytes = Encoding.UTF8.GetBytes(order);
+            var orderBytes = Encoding.UTF8.GetBytes(order);
 
             // Redsys requires the order string to be padded with zeroes on the right
             // until its byte length is an exact multiple of 8 bytes (3DES block size).
-            int remainder = orderBytes.Length % 8;
-            byte[] paddedOrderBytes = orderBytes;
+            var remainder = orderBytes.Length % 8;
+            var paddedOrderBytes = orderBytes;
             if (remainder != 0)
             {
                 paddedOrderBytes = new byte[orderBytes.Length + (8 - remainder)];
@@ -53,7 +53,7 @@ public sealed class RedsysCryptoService : IRedsysCryptoService
         ArgumentNullException.ThrowIfNull(diversifiedKey);
 
         using var hmac = new HMACSHA256(diversifiedKey);
-        byte[] hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(merchantParametersBase64));
+        var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(merchantParametersBase64));
         return Convert.ToBase64String(hash);
     }
 
@@ -73,10 +73,10 @@ public sealed class RedsysCryptoService : IRedsysCryptoService
         {
             diversifiedKey = DiversifyKey(secretKeyBase64, order);
             using var hmac = new HMACSHA256(diversifiedKey);
-            byte[] computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(merchantParametersBase64));
+            var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(merchantParametersBase64));
 
-            string normalizedReceived = NormalizeBase64(receivedSignature);
-            byte[] receivedHash = Convert.FromBase64String(normalizedReceived);
+            var normalizedReceived = NormalizeBase64(receivedSignature);
+            var receivedHash = Convert.FromBase64String(normalizedReceived);
 
             return CryptographicOperations.FixedTimeEquals(computedHash, receivedHash);
         }
@@ -102,10 +102,10 @@ public sealed class RedsysCryptoService : IRedsysCryptoService
         }
 
         // Handle URL-safe characters (- for + and _ for /)
-        string normalized = base64.Replace('-', '+').Replace('_', '/');
+        var normalized = base64.Replace('-', '+').Replace('_', '/');
 
         // Complete '=' padding if trimmed during HTTP transport
-        int remainder = normalized.Length % 4;
+        var remainder = normalized.Length % 4;
         if (remainder > 0)
         {
             normalized = normalized.PadRight(normalized.Length + (4 - remainder), '=');

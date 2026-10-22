@@ -23,7 +23,7 @@ public sealed class RedsysNotification
     /// <summary>
     /// Human-readable explanation of the payment result in Spanish (default Redsys response format).
     /// </summary>
-    public string ResponseDescription => RedsysResponseCatalog.GetDescription(ResponseCode, RedsysLanguage.Spanish);
+    public string ResponseDescription => RedsysResponseCatalog.GetDescription(ResponseCode);
 
     /// <summary>
     /// Human-readable explanation of the payment result in English.
@@ -164,7 +164,7 @@ public sealed class RedsysNotification
     {
         // Parse safe integer cents
         long cents = 0;
-        if (!string.IsNullOrWhiteSpace(dto.Amount) && long.TryParse(dto.Amount, NumberStyles.Integer, CultureInfo.InvariantCulture, out long parsedCents))
+        if (!string.IsNullOrWhiteSpace(dto.Amount) && long.TryParse(dto.Amount, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedCents))
         {
             cents = parsedCents;
         }
@@ -173,8 +173,8 @@ public sealed class RedsysNotification
         DateTimeOffset? dateTime = null;
         if (!string.IsNullOrWhiteSpace(dto.Date) && !string.IsNullOrWhiteSpace(dto.Hour))
         {
-            string dateStr = $"{Uri.UnescapeDataString(dto.Date)} {Uri.UnescapeDataString(dto.Hour)}";
-            if (DateTimeOffset.TryParseExact(dateStr, "dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTimeOffset parsedDt))
+            var dateStr = $"{Uri.UnescapeDataString(dto.Date)} {Uri.UnescapeDataString(dto.Hour)}";
+            if (DateTimeOffset.TryParseExact(dateStr, "dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsedDt))
             {
                 dateTime = parsedDt;
             }

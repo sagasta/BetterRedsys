@@ -5,6 +5,7 @@ using BetterRedsys.Cryptography;
 using BetterRedsys.Models;
 using BetterRedsys.Services;
 using BetterRedsys.Simulator;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -60,7 +61,7 @@ public class RedsysSimulatorTests
         var crypto = new RedsysCryptoService();
         var client = new RedsysClient(Options.Create(options), crypto);
 
-        string order = "2026102201";
+        var order = "2026102201";
         var simulatedDto = new SimulatorRestNotificationDto
         {
             Date = Uri.EscapeDataString("22/10/2026"),
@@ -78,14 +79,14 @@ public class RedsysSimulatorTests
         };
 
         // Simular lo que hace el simulador:
-        byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(simulatedDto, SimulatorRestJsonContext.Default.SimulatorRestNotificationDto);
-        string paramsBase64 = Convert.ToBase64String(jsonBytes);
+        var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(simulatedDto, SimulatorRestJsonContext.Default.SimulatorRestNotificationDto);
+        var paramsBase64 = Convert.ToBase64String(jsonBytes);
 
-        byte[] diversifiedKey = crypto.DiversifyKey(options.SecretKey, order);
-        string signature = crypto.ComputeSignature(paramsBase64, diversifiedKey);
+        var diversifiedKey = crypto.DiversifyKey(options.SecretKey, order);
+        var signature = crypto.ComputeSignature(paramsBase64, diversifiedKey);
 
         // Validar que RedsysClient decodifica y verifica exitosamente
-        bool isValid = client.TryDecodeNotification(paramsBase64, signature, out var notification, out var error);
+        var isValid = client.TryDecodeNotification(paramsBase64, signature, out var notification, out var error);
 
         Assert.True(isValid);
         Assert.Null(error);
@@ -108,7 +109,7 @@ public class RedsysSimulatorTests
         };
         var simulatorOptions = new RedsysSimulatorOptions();
 
-        bool nextCalled = false;
+        var nextCalled = false;
         var middleware = new RedsysSimulatorMiddleware(
             next: ctx =>
             {
@@ -120,9 +121,14 @@ public class RedsysSimulatorTests
             cryptoService: new RedsysCryptoService(),
             logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<RedsysSimulatorMiddleware>.Instance);
 
-        var context = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-        context.Request.Path = simulatorOptions.Path;
-        context.Request.Method = "GET";
+        var context = new DefaultHttpContext
+        {
+            Request =
+            {
+                Path = simulatorOptions.Path,
+                Method = "GET"
+            }
+        };
 
         await middleware.InvokeAsync(context);
 
@@ -148,21 +154,26 @@ public class RedsysSimulatorTests
             cryptoService: new RedsysCryptoService(),
             logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<RedsysSimulatorMiddleware>.Instance);
 
-        var context = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-        context.Request.Path = $"{simulatorOptions.Path.TrimEnd('/')}/dispatch-webhook";
-        context.Request.Method = "POST";
-        context.Request.Host = new Microsoft.AspNetCore.Http.HostString("localhost", 5000);
-        context.Request.Scheme = "http";
+        var context = new DefaultHttpContext
+        {
+            Request =
+            {
+                Path = $"{simulatorOptions.Path.TrimEnd('/')}/dispatch-webhook",
+                Method = "POST",
+                Host = new HostString("localhost", 5000),
+                Scheme = "http"
+            }
+        };
 
         // Malicious simulation request targeting internal AWS cloud metadata
-        string maliciousBody = """
-        {
-            "order": "2026102201",
-            "amount": "1000",
-            "merchantUrl": "http://169.254.169.254/latest/meta-data/",
-            "responseCode": "0000"
-        }
-        """;
+        const string maliciousBody = """
+                                     {
+                                         "order": "2026102201",
+                                         "amount": "1000",
+                                         "merchantUrl": "http://169.254.169.254/latest/meta-data/",
+                                         "responseCode": "0000"
+                                     }
+                                     """;
         var bodyBytes = Encoding.UTF8.GetBytes(maliciousBody);
         context.Request.Body = new MemoryStream(bodyBytes);
         context.Response.Body = new MemoryStream();
@@ -171,7 +182,7 @@ public class RedsysSimulatorTests
 
         Assert.Equal(400, context.Response.StatusCode);
         context.Response.Body.Position = 0;
-        string responseJson = new StreamReader(context.Response.Body).ReadToEnd();
+        var responseJson = await new StreamReader(context.Response.Body).ReadToEndAsync();
         Assert.Contains("SSRF Protection", responseJson);
     }
 
@@ -194,12 +205,17 @@ public class RedsysSimulatorTests
             cryptoService: new RedsysCryptoService(),
             logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<RedsysSimulatorMiddleware>.Instance);
 
-        var context = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-        context.Request.Path = simulatorOptions.Path;
-        context.Request.Method = "POST";
-        context.Request.ContentType = "application/x-www-form-urlencoded";
+        var context = new DefaultHttpContext
+        {
+            Request =
+            {
+                Path = simulatorOptions.Path,
+                Method = "POST",
+                ContentType = "application/x-www-form-urlencoded"
+            }
+        };
 
-        string xssDescription = "<script>alert('xss')</script>";
+        var xssDescription = "<script>alert('xss')</script>";
         var dto = new SimulatorRestMerchantDto
         {
             Order = "2026102202",
@@ -207,10 +223,10 @@ public class RedsysSimulatorTests
             ProductDescription = xssDescription
         };
 
-        byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(dto, SimulatorRestJsonContext.Default.SimulatorRestMerchantDto);
-        string base64Params = Convert.ToBase64String(jsonBytes);
+        var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(dto, SimulatorRestJsonContext.Default.SimulatorRestMerchantDto);
+        var base64Params = Convert.ToBase64String(jsonBytes);
 
-        context.Request.Form = new Microsoft.AspNetCore.Http.FormCollection(
+        context.Request.Form = new FormCollection(
             new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>
             {
                 [RedsysPaymentResponseData.FormFieldMerchantParameters] = base64Params
@@ -222,7 +238,7 @@ public class RedsysSimulatorTests
 
         Assert.Equal(200, context.Response.StatusCode);
         context.Response.Body.Position = 0;
-        string html = new StreamReader(context.Response.Body).ReadToEnd();
+        var html = await new StreamReader(context.Response.Body).ReadToEndAsync();
 
         // Must NOT contain unescaped script tag in HTML body
         Assert.DoesNotContain("<script>alert('xss')</script>", html);
