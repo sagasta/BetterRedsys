@@ -10,6 +10,7 @@ obj/
 .vscode/
 *.nupkg
 *.snupkg
+artifacts/
 !src/BetterRedsys/bin/Release/*.nupkg
 
 ## Test Results

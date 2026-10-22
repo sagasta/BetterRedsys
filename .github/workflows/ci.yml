@@ -19,15 +19,16 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '10.0.x'
+        dotnet-quality: 'preview'
 
     - name: Restore dependencies
-      run: dotnet restore BetterRedsys.sln
+      run: dotnet restore BetterRedsys.slnx
 
     - name: Build Solution (Release)
-      run: dotnet build BetterRedsys.sln -c Release --no-restore /p:TreatWarningsAsErrors=true
+      run: dotnet build BetterRedsys.slnx -c Release --no-restore /p:TreatWarningsAsErrors=true
 
     - name: Run Tests
-      run: dotnet test BetterRedsys.sln -c Release --no-build --verbosity normal
+      run: dotnet test BetterRedsys.slnx -c Release --no-build --verbosity normal
 
     - name: Pack NuGet
       run: dotnet pack src/BetterRedsys/BetterRedsys.csproj -c Release --no-build -o ./artifacts
