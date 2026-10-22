@@ -1,87 +1,203 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BetterRedsys Simulator • Interactive Payment Simulator</title>
+    <title>Pasarela de Pago Segura • Redsys TPV Virtual</title>
     <style>
         {{CSS}}
     </style>
 </head>
 <body data-dispatch-url="{{DISPATCH_URL}}">
-    <div class="container">
-        <div class="header">
-            <div>
-                <h2>BetterRedsys Simulator • Local Sandbox / Simulador Local</h2>
-                <p style="font-size: 0.85rem; color: var(--muted); margin-top: 4px;">In-memory payment simulation &amp; webhook dispatcher • Simulación y despacho local.</p>
+
+    <!-- Top Navigation Bar (Official Redsys Header) -->
+    <header class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <div class="redsys-logo">redsys</div>
+                <div class="redsys-subtitle">TPV Virtual</div>
             </div>
-            <div class="title-badge">
-                <span class="badge-dot"></span> SIMULATOR ACTIVE
+            <div class="lang-selector-container">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+                <select id="langSelector" class="lang-selector" onchange="changeLanguage(this.value)" data-initial-lang="{{CONSUMER_LANG_CODE}}">
+                    <option value="001" selected>Castellano (ES)</option>
+                    <option value="002">English (EN)</option>
+                    <option value="003">Català (CA)</option>
+                    <option value="004">Galego (GL)</option>
+                    <option value="013">Euskara (EU)</option>
+                    <option value="005">Français (FR)</option>
+                    <option value="006">Deutsch (DE)</option>
+                </select>
             </div>
         </div>
+    </header>
 
-        <div class="content">
-            <div>
-                <div class="panel-title">📦 Order Data / Datos del Pedido</div>
-                <div class="amount-hero">{{AMOUNT}}</div>
-
-                <div class="info-grid">
-                    <div class="info-row"><span class="info-label">Order (Ds_Order):</span><span class="info-val">{{ORDER}}</span></div>
-                    <div class="info-row"><span class="info-label">Merchant (FUC):</span><span class="info-val">{{MERCHANT_CODE}} (Terminal {{TERMINAL}})</span></div>
-                    <div class="info-row"><span class="info-label">Method / Método:</span><span class="info-val">{{PAY_METHODS}} {{BIZUM_BADGE}}</span></div>
-                    <div class="info-row"><span class="info-label">Language / Idioma:</span><span class="info-val">{{CONSUMER_LANG}} ({{CONSUMER_LANG_CODE}})</span></div>
-                    <div class="info-row"><span class="info-label">Customer Mobile / Móvil:</span><span class="info-val">{{CUSTOMER_MOBILE}}</span></div>
-                    <div class="info-row"><span class="info-label">Description / Descripción:</span><span class="info-val">{{DESCRIPTION}}</span></div>
-                    <div class="info-row"><span class="info-label">Webhook URL:</span><span class="info-val" style="font-family:monospace; font-size:0.75rem;">{{MERCHANT_URL}}</span></div>
-                    <div class="info-row"><span class="info-label">Return OK (UrlOk):</span><span class="info-val" style="font-family:monospace; font-size:0.75rem;">{{URL_OK}}</span></div>
-                    <div class="info-row"><span class="info-label">Return KO (UrlKo):</span><span class="info-val" style="font-family:monospace; font-size:0.75rem;">{{URL_KO}}</span></div>
-                </div>
+    <!-- Subtle Sandbox Bar (clean, professional test controls) -->
+    <div class="sandbox-bar">
+        <div class="sandbox-bar-content">
+            <div class="sandbox-info">
+                <span>⚠️ Entorno de pruebas (Sandbox) — Operación simulada</span>
             </div>
-
-            <div>
-                <div class="panel-title">⚡ Result Simulation / Simulación de Resultado</div>
-                
-                <div class="form-group">
-                    <label for="selectResponse">Transaction Outcome / Resultado</label>
-                    <select id="selectResponse">
-                        <option value="0000" selected>🟢 0000 - Success / Transacción autorizada</option>
-                        <option value="0116">🔴 0116 - Insufficient funds / Saldo insuficiente</option>
-                        <option value="0180">🔴 0180 - Card expired or rejected / Tarjeta caducada</option>
-                        <option value="0184">🔴 0184 - 3DS / SCA Authentication error / Fallo 3D Secure</option>
-                        <option value="0190">🔴 0190 - Issuer declined / Denegación del emisor</option>
-                        <option value="0912">🔴 0912 - Issuer host unavailable / Centro emisor no disponible</option>
-                        <option value="9915">🟡 9915 - Canceled by user / Cancelado por el usuario</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="selectMethod">Payment Method Used / Método Empleado</label>
-                    <select id="selectMethod">
-                        <option value="T" selected>💳 Credit / Debit Card (Ds_ProcessedPayMethod = 'T')</option>
-                        <option value="z">📱 Bizum (Ds_ProcessedPayMethod = 'z')</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="authCode">Authorization Code (Ds_AuthorisationCode)</label>
-                    <input id="authCode" value="999888" placeholder="999888" />
-                </div>
-
-                <button id="btnSimulate" class="btn btn-simulate" onclick="simulatePayment()">
-                    🚀 Simulate Payment &amp; Dispatch Webhook / Simular Pago
-                </button>
-
-                <div id="statusBox" class="status-box">
-                    <div style="font-weight: 700; margin-bottom: 6px;" id="statusHeader">Dispatching notification...</div>
-                    <div id="statusDetail" style="color: var(--muted); line-height: 1.4;"></div>
-                    <div id="redirectActions" style="margin-top: 12px; display: none;">
-                        <a id="btnRedirect" class="btn btn-redirect" href="#">Browser Redirection / Volver a la tienda</a>
-                    </div>
-                </div>
+            <div class="sandbox-selector">
+                <label for="selectResponse">Resultado a simular:</label>
+                <select id="selectResponse" onchange="onOutcomeChange()">
+                    <option value="0000" selected>0000 - Transacción autorizada</option>
+                    <option value="0116">0116 - Saldo insuficiente</option>
+                    <option value="0180">0180 - Tarjeta caducada</option>
+                    <option value="0184">0184 - Fallo autenticación 3DS / PSD2</option>
+                    <option value="0190">0190 - Denegación del emisor</option>
+                    <option value="9915">9915 - Cancelado por el usuario</option>
+                </select>
             </div>
         </div>
     </div>
 
+    <!-- Main Payment Gateway Container -->
+    <main class="main-layout">
+        <div class="gateway-card">
+            
+            <!-- Left Column: Order Summary -->
+            <section class="order-summary-panel">
+                <div class="summary-heading" id="lblSummaryHeading">Detalle de la compra</div>
+
+                <div class="amount-box">
+                    <div class="amount-label" id="lblAmount">Importe a pagar</div>
+                    <div class="amount-value" id="valAmount">{{AMOUNT}}</div>
+                </div>
+
+                <div class="order-data-list">
+                    <div class="order-data-item">
+                        <span class="order-data-label" id="lblOrder">Número de Pedido</span>
+                        <span class="order-data-val">{{ORDER}}</span>
+                    </div>
+                    <div class="order-data-item">
+                        <span class="order-data-label" id="lblMerchant">Comercio (FUC)</span>
+                        <span class="order-data-val">{{MERCHANT_CODE}} &bull; Terminal {{TERMINAL}}</span>
+                    </div>
+                    <div class="order-data-item">
+                        <span class="order-data-label" id="lblConcept">Concepto</span>
+                        <span class="order-data-val">{{DESCRIPTION}}</span>
+                    </div>
+                    <div class="order-data-item">
+                        <span class="order-data-label" id="lblDateTime">Fecha y hora</span>
+                        <span class="order-data-val" id="currentDateTime">--/--/---- --:--</span>
+                    </div>
+                </div>
+
+                <!-- Collapsible technical URLs for developer inspection -->
+                <details class="tech-details">
+                    <summary id="lblTechDetails">Parámetros técnicos de integración</summary>
+                    <div class="tech-details-content">
+                        <strong>Webhook (MerchantURL):</strong><br/>
+                        {{MERCHANT_URL}}<br/><br/>
+                        <strong>URL OK:</strong><br/>
+                        {{URL_OK}}<br/><br/>
+                        <strong>URL KO:</strong><br/>
+                        {{URL_KO}}
+                    </div>
+                </details>
+            </section>
+
+            <!-- Right Column: Authentic Payment Form -->
+            <section class="payment-form-panel">
+                
+                <!-- Payment Method Switcher Tabs -->
+                <div class="methods-tabs">
+                    <button id="tabCard" class="tab-btn active" onclick="switchMethod('T')">
+                        <span>💳</span> <span id="lblTabCard">Tarjeta bancaria</span>
+                    </button>
+                    <button id="tabBizum" class="tab-btn bizum-tab" onclick="switchMethod('z')">
+                        <span>📱</span> <span id="lblTabBizum">Bizum</span>
+                    </button>
+                </div>
+
+                <!-- CARD FORM -->
+                <div id="cardSection" class="tab-content active">
+                    <div class="card-logos-row">
+                        <span class="card-badge visa">VISA</span>
+                        <span class="card-badge mc">Mastercard</span>
+                        <span class="card-badge">Maestro</span>
+                        <span class="card-badge">Red 6000</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cardNumber" id="lblCardNumber">Número de tarjeta</label>
+                        <div class="input-container">
+                            <input id="cardNumber" type="text" maxlength="19" placeholder="4548 1234 5678 9010" value="4548 1234 5678 9010" />
+                        </div>
+                        <div class="quick-fill-bar">
+                            <span style="font-size:0.72rem; color:var(--text-muted); font-weight:600;" id="lblTry">Probar:</span>
+                            <button type="button" class="quick-fill-btn" onclick="quickFill('0000', '4548 1234 5678 9010')">Autorizada (0000)</button>
+                            <button type="button" class="quick-fill-btn" onclick="quickFill('0116', '4548 0000 0000 0116')">Sin saldo (0116)</button>
+                            <button type="button" class="quick-fill-btn" onclick="quickFill('0180', '4548 0000 0000 0180')">Caducada (0180)</button>
+                            <button type="button" class="quick-fill-btn" onclick="quickFill('0184', '4548 0000 0000 0184')">Error 3DS (0184)</button>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cardExpiry" id="lblCardExpiry">Caducidad</label>
+                            <input id="cardExpiry" type="text" maxlength="5" placeholder="MM/AA" value="12/28" />
+                        </div>
+                        <div class="form-group">
+                            <label for="cardCvv" id="lblCardCvv">CVV / CVC</label>
+                            <input id="cardCvv" type="password" maxlength="4" placeholder="123" value="888" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BIZUM FORM -->
+                <div id="bizumSection" class="tab-content">
+                    <div class="bizum-header-box">
+                        <div class="bizum-brand-title" id="lblBizumTitle">Pago seguro con Bizum</div>
+                        <div class="bizum-brand-desc" id="lblBizumDesc">Introduce tu número de teléfono y tu clave Bizum de 4 dígitos.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bizumPhone" id="lblBizumPhone">Teléfono móvil</label>
+                        <input id="bizumPhone" type="tel" maxlength="12" placeholder="600 000 000" value="{{CUSTOMER_MOBILE}}" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bizumPin" id="lblBizumPin">Clave Bizum (4 dígitos)</label>
+                        <input id="bizumPin" type="password" maxlength="4" placeholder="••••" value="1234" />
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="actions-row">
+                    <button id="btnPay" class="btn-pay" onclick="submitPayment()">
+                        <span id="lblBtnPay">Pagar {{AMOUNT}}</span>
+                    </button>
+                    <button type="button" class="btn-cancel" id="lblBtnCancel" onclick="cancelPayment()">
+                        Cancelar y volver a la tienda
+                    </button>
+                </div>
+
+            </section>
+        </div>
+    </main>
+
+    <!-- Processing Overlay Modal (Authentic Bank Connecting Screen) -->
+    <div id="processingModal" class="overlay">
+        <div class="modal">
+            <div id="modalSpinner" class="spinner"></div>
+            <div id="modalTitle" class="modal-title">Conectando con la entidad emisora...</div>
+            <div id="modalDesc" class="modal-desc">
+                Por favor, no cierre ni refresque esta ventana mientras se procesa la transacción bancaria.
+            </div>
+            <div id="modalStatusContainer" style="display:none;">
+                <div id="modalStatusPill" class="modal-status-pill"></div>
+                <div id="modalStatusDetail" style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:16px;"></div>
+                <a id="btnRedirect" class="btn-redirect-now" href="#">Continuar a la tienda</a>
+            </div>
+        </div>
+    </div>
+    <!-- Scripts -->
     <script id="simulatorData" type="application/json">
         {{INITIAL_DATA_JSON}}
     </script>

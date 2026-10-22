@@ -1,72 +1,140 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BetterRedsys Simulator • Active / Activo</title>
+    <title>Redsys TPV Virtual • Pasarela de Pagos</title>
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #090d16;
-            color: #f1f5f9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f5f8;
+            color: #1f2937;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .navbar {
+            width: 100%;
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .navbar-container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 14px 24px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
+            justify-content: space-between;
         }
-        .card {
-            background: #131b2e;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 16px;
-            padding: 40px;
-            max-width: 540px;
+        .redsys-logo {
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: #ba0c2f;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .redsys-subtitle {
+            font-size: 0.85rem;
+            color: #6b7280;
+            border-left: 1px solid #d1d5db;
+            padding-left: 10px;
+        }
+        .main-card {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+            max-width: 620px;
+            width: 90%;
+            margin: 60px auto;
+            padding: 36px 32px;
             text-align: center;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
         }
-        .badge {
-            background: rgba(16, 185, 129, 0.15);
-            color: #10b981;
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            border-radius: 9999px;
-            padding: 4px 12px;
-            font-size: 0.8rem;
-            font-weight: 700;
+        .tag {
             display: inline-block;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 4px 12px;
             margin-bottom: 16px;
         }
         h1 {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #111827;
             margin-bottom: 12px;
         }
         p {
-            color: #94a3b8;
+            color: #4b5563;
             font-size: 0.95rem;
-            line-height: 1.5;
+            line-height: 1.6;
             margin-bottom: 24px;
         }
-        .code {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
+        .endpoint-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
             padding: 12px;
             font-family: monospace;
-            font-size: 0.85rem;
-            color: #06b6d4;
-            text-align: left;
+            font-size: 0.88rem;
+            color: #0f172a;
+            word-break: break-all;
+            margin-bottom: 24px;
+        }
+        .btn-test {
+            display: inline-block;
+            background: #ba0c2f;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: background-color 0.15s;
+        }
+        .btn-test:hover {
+            background: #9e0a27;
         }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div class="badge">● SIMULATOR ONLINE</div>
-        <h1>BetterRedsys Simulator</h1>
-        <p>The local Redsys &amp; Bizum simulator is active and ready to intercept payment requests from your application.</p>
-        <div class="code">
-            // Payments generated with RedsysPaymentBuilder<br />
-            // will be automatically intercepted at this route:<br />
-            Endpoint: {{ENDPOINT_PATH}}
+    <header class="navbar">
+        <div class="navbar-container">
+            <div class="redsys-logo">
+                redsys
+                <span class="redsys-subtitle">TPV Virtual</span>
+            </div>
+            <div style="font-size: 0.82rem; color: #059669; font-weight: 600;">
+                ● Pasarela Activa
+            </div>
         </div>
+    </header>
+
+    <div class="main-card">
+        <div class="tag">Simulador de Entorno Bancario</div>
+        <h1>Pasarela de Pago Redsys TPV Virtual</h1>
+        <p>
+            El entorno de pruebas local de Redsys y Bizum está listo para recibir operaciones de pago redireccionadas desde su aplicación.
+        </p>
+
+        <div class="endpoint-box">
+            Ruta activa: <strong>{{ENDPOINT_PATH}}</strong>
+        </div>
+
+        <a class="btn-test" href="/checkout/pagar/2026102201">
+            Iniciar prueba de pago de ejemplo
+        </a>
     </div>
 </body>
 </html>
