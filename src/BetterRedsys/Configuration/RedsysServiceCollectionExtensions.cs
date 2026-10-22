@@ -39,6 +39,38 @@ public static class RedsysServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Registers BetterRedsys services by automatically binding to configuration using <c>BindConfiguration</c>
+    /// (defaults to section "Redsys"). Seamlessly supports User Secrets, Azure Key Vault, Azure App Configuration,
+    /// environment variables, and appsettings.json.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="sectionName">Section name in configuration (defaults to "Redsys").</param>
+    /// <param name="configure">Optional additional configure callback to override or supplement values in code.</param>
+    /// <returns>An <see cref="IBetterRedsysBuilder"/> for chaining modules.</returns>
+    [RequiresUnreferencedCode("Dynamic configuration binding via BindConfiguration may require reflection.")]
+    [RequiresDynamicCode("Dynamic configuration binding may require dynamic code generation in Native AOT.")]
+    public static IBetterRedsysBuilder AddBetterRedsys(
+        this IServiceCollection services,
+        string sectionName = "Redsys",
+        Action<RedsysOptions>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        var optionsBuilder = services.AddOptions<RedsysOptions>()
+            .BindConfiguration(sectionName)
+            .ValidateOnStart();
+
+        if (configure is not null)
+        {
+            optionsBuilder.Configure(configure);
+        }
+
+        RegisterCoreServices(services);
+
+        return new BetterRedsysBuilder(services);
+    }
+
+    /// <summary>
     /// Registers BetterRedsys services by automatically binding to an <see cref="IConfiguration"/> section (defaults to "Redsys").
     /// </summary>
     /// <param name="services">The service collection.</param>
