@@ -50,27 +50,46 @@ using BetterRedsys.Simulator;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuración fluida con validación al arrancar
-var redsysBuilder = builder.Services.AddBetterRedsys(options =>
+// Configuración diferenciando Desarrollo y Producción
+var redsys = builder.Services.AddBetterRedsys(options =>
 {
-    options.UseTest(
-        fuc: "999008881",
-        terminal: "1",
-        secretKey: "sq7HjrUOBfKmC576ILgskD5srURiUz6U"
-    )
-    .WithEuros()
-    .WithWebhooks(
-        notificationUrl: "/api/pagos/webhook",
-        okUrl: "/pedido-exitoso",
-        koUrl: "/pedido-cancelado"
-    );
+    if (builder.Environment.IsDevelopment())
+    {
+        // Desarrollo: Credenciales del entorno de pruebas de Redsys
+        options.UseTest(
+            fuc: "999008881",
+            terminal: "1",
+            secretKey: "sq7HjrUOBfKmC576ILgskD5srURiUz6U"
+        )
+        .WithWebhooks(
+            notificationUrl: "/api/pagos/webhook",
+            okUrl: "/pedido-exitoso",
+            koUrl: "/pedido-cancelado"
+        );
+    }
+    else
+    {
+        // Producción: Credenciales reales desde variables de entorno o Key Vault
+        options.UseProduction(
+            fuc: builder.Configuration["Redsys:Fuc"]!,
+            terminal: builder.Configuration["Redsys:Terminal"]!,
+            secretKey: builder.Configuration["Redsys:SecretKey"]!
+        )
+        .WithWebhooks(
+            notificationUrl: "https://tutienda.com/api/pagos/webhook",
+            okUrl: "https://tutienda.com/pedido-exitoso",
+            koUrl: "https://tutienda.com/pedido-cancelado"
+        );
+    }
+
+    options.WithEuros();
 })
 .AddHealthCheck();
 
-// Activar simulador en desarrollo
+// En desarrollo, activa el simulador local de pruebas (sin ngrok)
 if (builder.Environment.IsDevelopment())
 {
-    redsysBuilder.AddSimulator();
+    redsys.AddSimulator();
 }
 
 var app = builder.Build();

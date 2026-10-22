@@ -26,25 +26,37 @@ using BetterRedsys.Simulator;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var redsysBuilder = builder.Services.AddBetterRedsys(options =>
+var redsys = builder.Services.AddBetterRedsys(options =>
 {
-    options.UseTest(
-        fuc: "999008881",
-        terminal: "1",
-        secretKey: "sq7HjrUOBfKmC576ILgskD5srURiUz6U"
-    )
-    .WithEuros()
-    .WithWebhooks(
-        notificationUrl: "/api/pagos/webhook",
-        okUrl: "/pedido-exitoso",
-        koUrl: "/pedido-cancelado"
-    );
+    if (builder.Environment.IsDevelopment())
+    {
+        options.UseTest(
+            fuc: "999008881",
+            terminal: "1",
+            secretKey: "sq7HjrUOBfKmC576ILgskD5srURiUz6U"
+        );
+    }
+    else
+    {
+        options.UseProduction(
+            fuc: builder.Configuration["Redsys:Fuc"]!,
+            terminal: builder.Configuration["Redsys:Terminal"]!,
+            secretKey: builder.Configuration["Redsys:SecretKey"]!
+        );
+    }
+
+    options.WithEuros()
+           .WithWebhooks(
+               notificationUrl: "/api/pagos/webhook",
+               okUrl: "/pedido-exitoso",
+               koUrl: "/pedido-cancelado"
+           );
 });
 
-// Registrar servicios del simulador en desarrollo
+// Registrar servicios del simulador exclusivamente en desarrollo
 if (builder.Environment.IsDevelopment())
 {
-    redsysBuilder.AddSimulator();
+    redsys.AddSimulator();
 }
 
 var app = builder.Build();

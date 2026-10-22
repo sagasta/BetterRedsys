@@ -1,4 +1,13 @@
 <Solution>
+  <Folder Name="/docs/">
+    <File Path="docs/configuration.md" />
+    <File Path="docs/insite.md" />
+    <File Path="docs/payments-and-bizum.md" />
+    <File Path="docs/rest-operations.md" />
+    <File Path="docs/simulator.md" />
+    <File Path="docs/telemetry.md" />
+    <File Path="docs/webhooks.md" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/BetterRedsys.SampleApi/BetterRedsys.SampleApi.csproj" />
   </Folder>
@@ -8,5 +17,9 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/BetterRedsys.Tests/BetterRedsys.Tests.csproj" />
+  </Folder>
+  <Folder Name="/solution-items/">
+    <File Path="README.md" />
+    <File Path="LICENSE" />
   </Folder>
 </Solution>
