@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BetterRedsys Simulator • Interactive Payment Simulator</title>
+    <style>
+        {{CSS}}
+    </style>
+</head>
+<body data-dispatch-url="{{DISPATCH_URL}}">
+    <div class="container">
+        <div class="header">
+            <div>
+                <h2>BetterRedsys Simulator • Local Sandbox / Simulador Local</h2>
+                <p style="font-size: 0.85rem; color: var(--muted); margin-top: 4px;">In-memory payment simulation &amp; webhook dispatcher • Simulación y despacho local.</p>
+            </div>
+            <div class="title-badge">
+                <span class="badge-dot"></span> SIMULATOR ACTIVE
+            </div>
+        </div>
+
+        <div class="content">
+            <div>
+                <div class="panel-title">📦 Order Data / Datos del Pedido</div>
+                <div class="amount-hero">{{AMOUNT}}</div>
+
+                <div class="info-grid">
+                    <div class="info-row"><span class="info-label">Order (Ds_Order):</span><span class="info-val">{{ORDER}}</span></div>
+                    <div class="info-row"><span class="info-label">Merchant (FUC):</span><span class="info-val">{{MERCHANT_CODE}} (Terminal {{TERMINAL}})</span></div>
+                    <div class="info-row"><span class="info-label">Method / Método:</span><span class="info-val">{{PAY_METHODS}} {{BIZUM_BADGE}}</span></div>
+                    <div class="info-row"><span class="info-label">Language / Idioma:</span><span class="info-val">{{CONSUMER_LANG}} ({{CONSUMER_LANG_CODE}})</span></div>
+                    <div class="info-row"><span class="info-label">Customer Mobile / Móvil:</span><span class="info-val">{{CUSTOMER_MOBILE}}</span></div>
+                    <div class="info-row"><span class="info-label">Description / Descripción:</span><span class="info-val">{{DESCRIPTION}}</span></div>
+                    <div class="info-row"><span class="info-label">Webhook URL:</span><span class="info-val" style="font-family:monospace; font-size:0.75rem;">{{MERCHANT_URL}}</span></div>
+                    <div class="info-row"><span class="info-label">Return OK (UrlOk):</span><span class="info-val" style="font-family:monospace; font-size:0.75rem;">{{URL_OK}}</span></div>
+                    <div class="info-row"><span class="info-label">Return KO (UrlKo):</span><span class="info-val" style="font-family:monospace; font-size:0.75rem;">{{URL_KO}}</span></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="panel-title">⚡ Result Simulation / Simulación de Resultado</div>
+                
+                <div class="form-group">
+                    <label for="selectResponse">Transaction Outcome / Resultado</label>
+                    <select id="selectResponse">
+                        <option value="0000" selected>🟢 0000 - Success / Transacción autorizada</option>
+                        <option value="0116">🔴 0116 - Insufficient funds / Saldo insuficiente</option>
+                        <option value="0180">🔴 0180 - Card expired or rejected / Tarjeta caducada</option>
+                        <option value="0184">🔴 0184 - 3DS / SCA Authentication error / Fallo 3D Secure</option>
+                        <option value="0190">🔴 0190 - Issuer declined / Denegación del emisor</option>
+                        <option value="0912">🔴 0912 - Issuer host unavailable / Centro emisor no disponible</option>
+                        <option value="9915">🟡 9915 - Canceled by user / Cancelado por el usuario</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="selectMethod">Payment Method Used / Método Empleado</label>
+                    <select id="selectMethod">
+                        <option value="T" selected>💳 Credit / Debit Card (Ds_ProcessedPayMethod = 'T')</option>
+                        <option value="z">📱 Bizum (Ds_ProcessedPayMethod = 'z')</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="authCode">Authorization Code (Ds_AuthorisationCode)</label>
+                    <input id="authCode" value="999888" placeholder="999888" />
+                </div>
+
+                <button id="btnSimulate" class="btn btn-simulate" onclick="simulatePayment()">
+                    🚀 Simulate Payment &amp; Dispatch Webhook / Simular Pago
+                </button>
+
+                <div id="statusBox" class="status-box">
+                    <div style="font-weight: 700; margin-bottom: 6px;" id="statusHeader">Dispatching notification...</div>
+                    <div id="statusDetail" style="color: var(--muted); line-height: 1.4;"></div>
+                    <div id="redirectActions" style="margin-top: 12px; display: none;">
+                        <a id="btnRedirect" class="btn btn-redirect" href="#">Browser Redirection / Volver a la tienda</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script id="simulatorData" type="application/json">
+        {{INITIAL_DATA_JSON}}
+    </script>
+    <script>
+        {{JS}}
+    </script>
+</body>
+</html>

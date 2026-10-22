@@ -8,6 +8,7 @@ using BetterRedsys.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using BetterRedsys.Simulator.UI;
 
 namespace BetterRedsys.Simulator;
 
@@ -370,311 +371,31 @@ public sealed class RedsysSimulatorMiddleware
         var consumerLangCode = WebUtility.HtmlEncode(p?.ConsumerLanguage ?? "001");
         var consumerLang = RedsysLanguageExtensions.FromRedsysCode(p?.ConsumerLanguage ?? "001");
         var isBizumAvailable = (p?.PayMethods ?? "").Contains('z', StringComparison.OrdinalIgnoreCase);
+        var bizumBadge = isBizumAvailable ? "<span class=\"bizum-pill\">Bizum</span>" : "";
 
-        var dispatchUrl = WebUtility.HtmlEncode($"{req.PathBase}{_simulatorOptions.Path.TrimEnd('/')}/dispatch-webhook");
+        var dispatchUrl = $"{req.PathBase}{_simulatorOptions.Path.TrimEnd('/')}/dispatch-webhook";
 
-        return $$"""
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="utf-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>BetterRedsys Simulator • Interactive Payment Simulator</title>
-            <style>
-                :root {
-                    --bg: #090d16;
-                    --card: #131b2e;
-                    --card-border: rgba(255, 255, 255, 0.08);
-                    --accent-red: #ef4444;
-                    --accent-cyan: #06b6d4;
-                    --accent-green: #10b981;
-                    --accent-yellow: #f59e0b;
-                    --text: #f1f5f9;
-                    --muted: #94a3b8;
-                    --input-bg: #1e293b;
-                }
-                * { box-sizing: border-box; margin: 0; padding: 0; }
-                body {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-                    background-color: var(--bg);
-                    color: var(--text);
-                    min-height: 100vh;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    padding: 32px 16px;
-                }
-                .container {
-                    max-width: 860px;
-                    width: 100%;
-                    background: var(--card);
-                    border: 1px solid var(--card-border);
-                    border-radius: 20px;
-                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-                    overflow: hidden;
-                }
-                .header {
-                    padding: 24px 32px;
-                    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(6, 182, 212, 0.15));
-                    border-bottom: 1px solid var(--card-border);
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                }
-                .title-badge {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                    background: rgba(255, 255, 255, 0.08);
-                    padding: 6px 12px;
-                    border-radius: 9999px;
-                    font-size: 0.75rem;
-                    font-weight: 700;
-                    letter-spacing: 0.05em;
-                    text-transform: uppercase;
-                }
-                .badge-dot {
-                    width: 8px;
-                    height: 8px;
-                    border-radius: 50%;
-                    background: var(--accent-green);
-                    box-shadow: 0 0 12px var(--accent-green);
-                }
-                .content { padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
-                @media (max-width: 768px) { .content { grid-template-columns: 1fr; } }
-                .panel-title { font-size: 1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-                .info-grid { display: grid; gap: 10px; background: rgba(0,0,0,0.25); border-radius: 12px; padding: 16px; }
-                .info-row { display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 6px; }
-                .info-row:last-child { border-bottom: none; padding-bottom: 0; }
-                .info-label { color: var(--muted); }
-                .info-val { font-weight: 600; text-align: right; }
-                .amount-hero { font-size: 1.8rem; font-weight: 800; color: #fff; margin-bottom: 16px; }
-                .form-group { margin-bottom: 16px; }
-                label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
-                select, input {
-                    width: 100%;
-                    padding: 10px 14px;
-                    background: var(--input-bg);
-                    border: 1px solid var(--card-border);
-                    border-radius: 8px;
-                    color: var(--text);
-                    font-size: 0.9rem;
-                    outline: none;
-                    transition: border 0.2s;
-                }
-                select:focus, input:focus { border-color: var(--accent-cyan); }
-                .btn {
-                    width: 100%;
-                    padding: 12px 20px;
-                    border: none;
-                    border-radius: 10px;
-                    font-size: 0.95rem;
-                    font-weight: 700;
-                    cursor: pointer;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 8px;
-                    transition: transform 0.15s, opacity 0.2s;
-                }
-                .btn:active { transform: scale(0.98); }
-                .btn-simulate {
-                    background: linear-gradient(135deg, #0ea5e9, #06b6d4);
-                    color: #fff;
-                    box-shadow: 0 10px 20px -5px rgba(6, 182, 212, 0.4);
-                }
-                .btn-redirect {
-                    margin-top: 10px;
-                    background: rgba(255,255,255,0.06);
-                    color: var(--text);
-                    border: 1px solid var(--card-border);
-                    text-decoration: none;
-                }
-                .btn-redirect:hover { background: rgba(255,255,255,0.12); }
-                .status-box {
-                    margin-top: 20px;
-                    background: rgba(0,0,0,0.35);
-                    border-radius: 10px;
-                    padding: 14px;
-                    font-size: 0.82rem;
-                    display: none;
-                }
-                .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: 700; }
-                .status-200 { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
-                .status-err { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
-                .bizum-pill { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <div>
-                        <h2>BetterRedsys Simulator • Local Sandbox / Simulador Local</h2>
-                        <p style="font-size: 0.85rem; color: var(--muted); margin-top: 4px;">In-memory payment simulation & webhook dispatcher • Simulación y despacho local.</p>
-                    </div>
-                    <div class="title-badge">
-                        <span class="badge-dot"></span> SIMULATOR ACTIVE
-                    </div>
-                </div>
-
-                <div class="content">
-                    <div>
-                        <div class="panel-title">📦 Order Data / Datos del Pedido</div>
-                        <div class="amount-hero">{{displayAmount}}</div>
-
-                        <div class="info-grid">
-                            <div class="info-row"><span class="info-label">Order (Ds_Order):</span><span class="info-val">{{order}}</span></div>
-                            <div class="info-row"><span class="info-label">Merchant (FUC):</span><span class="info-val">{{merchantCode}} (Terminal {{terminal}})</span></div>
-                            <div class="info-row"><span class="info-label">Method / Método:</span><span class="info-val">{{payMethods}} {{(isBizumAvailable ? "<span class=\"bizum-pill\">Bizum</span>" : "")}}</span></div>
-                            <div class="info-row"><span class="info-label">Language / Idioma:</span><span class="info-val">{{consumerLang}} ({{consumerLangCode}})</span></div>
-                            <div class="info-row"><span class="info-label">Customer Mobile / Móvil:</span><span class="info-val">{{phone}}</span></div>
-                            <div class="info-row"><span class="info-label">Description / Descripción:</span><span class="info-val">{{desc}}</span></div>
-                            <div class="info-row"><span class="info-label">Webhook URL:</span><span class="info-val" style="font-family:monospace; font-size:0.75rem;">{{merchantUrl}}</span></div>
-                            <div class="info-row"><span class="info-label">Return OK (UrlOk):</span><span class="info-val" style="font-family:monospace; font-size:0.75rem;">{{urlOk}}</span></div>
-                            <div class="info-row"><span class="info-label">Return KO (UrlKo):</span><span class="info-val" style="font-family:monospace; font-size:0.75rem;">{{urlKo}}</span></div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="panel-title">⚡ Result Simulation / Simulación de Resultado</div>
-                        
-                        <div class="form-group">
-                            <label for="selectResponse">Transaction Outcome / Resultado</label>
-                            <select id="selectResponse">
-                                <option value="0000" selected>🟢 0000 - Success / Transacción autorizada</option>
-                                <option value="0116">🔴 0116 - Insufficient funds / Saldo insuficiente</option>
-                                <option value="0180">🔴 0180 - Card expired or rejected / Tarjeta caducada</option>
-                                <option value="0184">🔴 0184 - 3DS / SCA Authentication error / Fallo 3D Secure</option>
-                                <option value="0190">🔴 0190 - Issuer declined / Denegación del emisor</option>
-                                <option value="0912">🔴 0912 - Issuer host unavailable / Centro emisor no disponible</option>
-                                <option value="9915">🟡 9915 - Canceled by user / Cancelado por el usuario</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="selectMethod">Payment Method Used / Método Empleado</label>
-                            <select id="selectMethod">
-                                <option value="T" selected>💳 Credit / Debit Card (Ds_ProcessedPayMethod = 'T')</option>
-                                <option value="z">📱 Bizum (Ds_ProcessedPayMethod = 'z')</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="authCode">Authorization Code (Ds_AuthorisationCode)</label>
-                            <input id="authCode" value="999888" placeholder="999888" />
-                        </div>
-
-                        <button id="btnSimulate" class="btn btn-simulate" onclick="simulatePayment()">
-                            🚀 Simulate Payment & Dispatch Webhook / Simular Pago
-                        </button>
-
-                        <div id="statusBox" class="status-box">
-                            <div style="font-weight: 700; margin-bottom: 6px;" id="statusHeader">Dispatching notification...</div>
-                            <div id="statusDetail" style="color: var(--muted); line-height: 1.4;"></div>
-                            <div id="redirectActions" style="margin-top: 12px; display: none;">
-                                <a id="btnRedirect" class="btn btn-redirect" href="#">Browser Redirection / Volver a la tienda</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <script id="simulatorData" type="application/json">
-                {{initialDataJson}}
-            </script>
-            <script>
-                async function simulatePayment() {
-                    const btn = document.getElementById('btnSimulate');
-                    const statusBox = document.getElementById('statusBox');
-                    const statusHeader = document.getElementById('statusHeader');
-                    const statusDetail = document.getElementById('statusDetail');
-                    const redirectActions = document.getElementById('redirectActions');
-                    const btnRedirect = document.getElementById('btnRedirect');
-
-                    btn.disabled = true;
-                    btn.innerText = '⏳ Signing & dispatching webhook / Firmando webhook...';
-                    statusBox.style.display = 'block';
-                    redirectActions.style.display = 'none';
-
-                    const baseData = JSON.parse(document.getElementById('simulatorData').textContent);
-                    const payload = {
-                        ...baseData,
-                        responseCode: document.getElementById('selectResponse').value,
-                        processedPayMethod: document.getElementById('selectMethod').value,
-                        authorisationCode: document.getElementById('authCode').value
-                    };
-
-                    try {
-                        const res = await fetch('{{dispatchUrl}}', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
-
-                        const data = await res.json();
-                        btn.disabled = false;
-                        btn.innerText = '🚀 Simulate again / Simular de nuevo';
-
-                        if (res.ok && data.success) {
-                            const isHttpOk = data.webhookStatus >= 200 && data.webhookStatus < 300;
-                            statusHeader.innerHTML = isHttpOk 
-                                ? '<span class="status-badge status-200">HTTP ' + data.webhookStatus + ' OK</span> Webhook processed successfully / Webhook procesado con éxito' 
-                                : '<span class="status-badge status-err">HTTP ' + data.webhookStatus + '</span> Webhook returned error / El webhook devolvió error';
-                            
-                            statusDetail.textContent = 'Endpoint Response: ' + (data.webhookResponse || '(Empty body)') + ' | Signature: Verified HMAC-SHA256.';
-
-                            redirectActions.style.display = 'block';
-                            btnRedirect.href = data.redirectUrl;
-                            btnRedirect.innerText = 'Navigate to ' + (payload.responseCode === '0000' ? 'URL OK' : 'URL KO') + ' (' + data.redirectUrl + ')';
-                        } else {
-                            statusHeader.innerHTML = '<span class="status-badge status-err">ERROR</span> Simulation error';
-                            statusDetail.textContent = data.error || 'Unknown error';
-                        }
-                    } catch (err) {
-                        btn.disabled = false;
-                        btn.innerText = '🚀 Retry simulation / Reintentar';
-                        statusHeader.innerHTML = '<span class="status-badge status-err">NETWORK ERROR</span>';
-                        statusDetail.textContent = err.message;
-                    }
-                }
-            </script>
-        </body>
-        </html>
-        """;
+        return SimulatorUiResources.RenderSimulatorHtml(
+            amount: WebUtility.HtmlEncode(amount.ToDisplayString()),
+            order: WebUtility.HtmlEncode(rawOrder),
+            merchantCode: WebUtility.HtmlEncode(rawMerchantCode),
+            terminal: WebUtility.HtmlEncode(rawTerminal),
+            payMethods: WebUtility.HtmlEncode(p?.PayMethods ?? "Tarjeta / Card"),
+            bizumBadge: bizumBadge,
+            consumerLang: WebUtility.HtmlEncode(RedsysLanguageExtensions.FromRedsysCode(p?.ConsumerLanguage ?? "001").ToString()),
+            consumerLangCode: WebUtility.HtmlEncode(p?.ConsumerLanguage ?? "001"),
+            customerMobile: WebUtility.HtmlEncode(p?.CustomerMobile ?? "(Not specified / No especificado)"),
+            description: WebUtility.HtmlEncode(p?.ProductDescription ?? "No description / Sin descripción"),
+            merchantUrl: WebUtility.HtmlEncode(rawMerchantUrl),
+            urlOk: WebUtility.HtmlEncode(rawUrlOk),
+            urlKo: WebUtility.HtmlEncode(rawUrlKo),
+            dispatchUrl: WebUtility.HtmlEncode(dispatchUrl),
+            initialDataJson: initialDataJson);
     }
 
     private string GenerateSimulatorLandingHtml()
     {
-        return $$"""
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="utf-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>BetterRedsys Simulator • Active / Activo</title>
-            <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #090d16; color: #f1f5f9; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
-                .card { background: #131b2e; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 40px; max-width: 540px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
-                .badge { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); border-radius: 9999px; padding: 4px 12px; font-size: 0.8rem; font-weight: 700; display: inline-block; margin-bottom: 16px; }
-                h1 { font-size: 1.5rem; margin-bottom: 12px; }
-                p { color: #94a3b8; font-size: 0.95rem; line-height: 1.5; margin-bottom: 24px; }
-                .code { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.85rem; color: #06b6d4; text-align: left; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <div class="badge">● SIMULATOR ONLINE</div>
-                <h1>BetterRedsys Simulator</h1>
-                <p>The local Redsys & Bizum simulator is active and ready to intercept payment requests from your application.</p>
-                <div class="code">
-                    // Payments generated with RedsysPaymentBuilder<br>
-                    // will be automatically intercepted at this route:<br>
-                    Endpoint: {{_simulatorOptions.Path}}
-                </div>
-            </div>
-        </body>
-        </html>
-        """;
+        return SimulatorUiResources.RenderLandingHtml(WebUtility.HtmlEncode(_simulatorOptions.Path));
     }
 }
 
