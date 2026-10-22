@@ -153,6 +153,7 @@ Para guías detalladas y ejemplos de cada funcionalidad, consulta la documentaci
 * [Redsys InSite](docs/insite.md): Integración con formulario embebido mediante `DS_MERCHANT_IDOPER`.
 * [Telemetría, Salud y Auditoría](docs/telemetry.md): ASP.NET Core Health Checks, trazas distribuidas con OpenTelemetry y métricas Prometheus.
 * [Simulador Local](docs/simulator.md): Pruebas completas en desarrollo local sin `ngrok` ni dependencias externas.
+* [Homologación y Paso a Producción](docs/homologacion-produccion.md): Checklist oficial para bancos (CaixaBank, Santander, BBVA...), tarjetas de test y pase a producción.
 
 ---
 

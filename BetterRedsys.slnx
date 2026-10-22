@@ -7,6 +7,7 @@
     <File Path="docs/simulator.md" />
     <File Path="docs/telemetry.md" />
     <File Path="docs/webhooks.md" />
+    <File Path="docs/homologacion-produccion.md" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/BetterRedsys.SampleApi/BetterRedsys.SampleApi.csproj" />

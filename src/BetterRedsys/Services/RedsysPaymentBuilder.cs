@@ -436,31 +436,7 @@ public sealed class RedsysPaymentBuilder
     /// </summary>
     public static void ValidateOrder(string order)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(order);
-
-        if (order.Length is < 4 or > 12)
-        {
-            throw new ArgumentException(
-                $"Order identifier '{order}' has {order.Length} characters. Redsys requires between 4 and 12 characters.",
-                nameof(order));
-        }
-
-        for (var i = 0; i < 4; i++)
-        {
-            if (!char.IsAsciiDigit(order[i]))
-            {
-                throw new ArgumentException(
-                    $"The first 4 characters of order '{order}' must be numeric digits according to Redsys specifications.",
-                    nameof(order));
-            }
-        }
-
-        if (!order.All(char.IsAsciiLetterOrDigit))
-        {
-            throw new ArgumentException(
-                $"Order identifier '{order}' can only contain alphanumeric ASCII characters (letters and digits).",
-                nameof(order));
-        }
+        RedsysOrderNumber.Validate(order);
     }
 
     /// <summary>

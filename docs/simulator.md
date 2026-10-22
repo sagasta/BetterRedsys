@@ -104,3 +104,25 @@ if (builder.Environment.IsDevelopment())
     });
 }
 ```
+
+---
+
+## 5. Constantes de Prueba para Tests de Integración (`RedsysTestCards`)
+
+Para tus pruebas unitarias y de integración automáticas, puedes utilizar las constantes de prueba oficiales incluidas en el namespace `BetterRedsys.Testing`:
+
+```csharp
+using BetterRedsys.Testing;
+
+// Tarjetas oficiales del Sandbox
+string tarjetaOk        = RedsysTestCards.Authorized;             // 4548810000000003
+string tarjetaSinSaldo  = RedsysTestCards.InsufficientFunds;      // 4548810000000116
+string tarjetaCaducada  = RedsysTestCards.Expired;                // 4548810000000180
+string tarjetaFallo3Ds  = RedsysTestCards.Authentication3DsError; // 4548810000000184
+string tarjetaDenegada  = RedsysTestCards.IssuerDeclined;         // 4548810000000190
+
+// Credenciales oficiales de test
+string fucTest   = RedsysTestCredentials.Fuc;       // "999008881"
+string termTest  = RedsysTestCredentials.Terminal;  // "1"
+string claveTest = RedsysTestCredentials.SecretKey; // "sq7HjrUOBfKmC576ILgskD5srURiUz6U"
+```

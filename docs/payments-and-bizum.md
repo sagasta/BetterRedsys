@@ -144,3 +144,34 @@ var pago = redsysClient
     })
     .ToFormData();
 ```
+
+---
+
+## 7. Generación y Validación de Números de Pedido (`RedsysOrderNumber`)
+
+Redsys exige que el número de pedido (`Ds_Merchant_Order`) cumpla estrictamente tres reglas:
+* Longitud entre **4 y 12 caracteres**.
+* **Los 4 primeros caracteres deben ser obligatoriamente dígitos numéricos** (`0-9`).
+* Todos los caracteres deben ser alfanuméricos ASCII (letras y números, sin guiones ni espacios).
+
+Para evitar el error bancario `SIS0014: Error en el formato de Ds_Merchant_Order`, utiliza la clase `RedsysOrderNumber`:
+
+```csharp
+using BetterRedsys.Models;
+
+// 1. Generar automáticamente un número de pedido válido de 12 caracteres (yyMMdd + 6 dígitos aleatorios)
+string orderId = RedsysOrderNumber.Generate(); // Ejemplo: "261022481920"
+
+// 2. Validar un número de pedido antes de procesarlo
+if (RedsysOrderNumber.IsValid(orderId, out string? error))
+{
+    // El número de pedido cumple la especificación de Redsys
+}
+else
+{
+    Console.WriteLine($"Número de pedido inválido: {error}");
+}
+
+// 3. Validación con excepción si no es válido
+RedsysOrderNumber.Validate(orderId);
+```
