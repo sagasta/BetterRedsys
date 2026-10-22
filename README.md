@@ -1,96 +1,73 @@
-# BetterRedsys 🚀
+# BetterRedsys
 
 [![NuGet](https://img.shields.io/nuget/v/BetterRedsys.svg)](https://www.nuget.org/packages/BetterRedsys/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-purple.svg)](https://dotnet.microsoft.com/)
 [![Native AOT](https://img.shields.io/badge/AOT-Ready-brightgreen.svg)]()
 
-Modern, strongly-typed, high-performance, and **Native AOT Ready** Redsys and Bizum payment gateway library for **ASP.NET Core** and **.NET 10** (C# 13/14).
-
-*Librería moderna, fuertemente tipada y Native AOT para la pasarela de pagos Redsys y Bizum en ASP.NET Core y .NET 10.*
+Librería moderna, de alto rendimiento y compatible con **Native AOT** para integrar la pasarela de pagos **Redsys y Bizum** en **ASP.NET Core** y **.NET 10** (C# 13/14).
 
 ---
 
-## ✨ Key Features / Características Principales
+## Características
 
-- **⚡ Idiomatic .NET 10 & C# 13/14:** File-scoped namespaces, primary constructors, readonly record structs, and pattern matching.
-- **🛡️ Native AOT Ready:** Zero reflection for JSON via `System.Text.Json` Source Generators (`JsonSerializerContext`). Suitable for lightweight containers and serverless microservices.
-- **🌍 Full Multilanguage Support (EN / ES / Regional):**
-  - Strongly-typed `RedsysLanguage` enum covering all 13 official Redsys language codes (Spanish `"001"`, English `"002"`, Catalan `"003"`, French `"004"`, German `"005"`, etc.).
-  - Automatic `CultureInfo` mapping.
-  - Bilingual response catalog ([RedsysResponseCatalog](file:///c:/Users/JoseSagastaBru/source/repos/BetterRedsys/src/BetterRedsys/Models/RedsysResponseCatalog.cs)) providing detailed, human-readable error descriptions in both English and Spanish (`notification.ResponseDescription` and `notification.ResponseDescriptionEn`).
-  - Bilingual automatic redirect HTML templates ([RedsysPaymentBuilder.ToAutoSubmitHtml](file:///c:/Users/JoseSagastaBru/source/repos/BetterRedsys/src/BetterRedsys/Services/RedsysPaymentBuilder.cs#L225)).
-- **🔐 Strict Redsys Cryptography:**
-  - 3DES-CBC key diversification with zero IV (`new byte[8]`) and right-padded zero bytes over the merchant order ID.
-  - HMAC-SHA256 signature computation over Base64 merchant parameters.
-  - Constant-time verification (`CryptographicOperations.FixedTimeEquals`) to prevent timing attacks.
-  - Automatic normalization of URL-safe Base64 signatures (`-` and `_`) and dynamic padding.
-- **📱 First-Class Native Bizum:**
-  - Fluent `.WithBizum()` and `.WithCardOrBizum()` methods.
-  - Spanish mobile number validation and normalization (9 digits starting with 6 or 7, supporting `+34` / `0034`).
-  - Automatic Bizum detection on webhook notification (`notification.IsBizum`).
-- **💶 Immutable Value Object `RedsysAmount`:** Eliminates rounding and floating-point errors by strictly handling integer cents with implicit conversions.
-- **🚀 Dual Mode: Decoupled Front-Ends & Direct Server Redirect:**
-  - `.ToFormData()`: Returns clean DTO ([RedsysPaymentResponseData](file:///c:/Users/JoseSagastaBru/source/repos/BetterRedsys/src/BetterRedsys/Models/RedsysPaymentResponseData.cs)) for React, Next.js, Blazor, Vue, or Mobile apps.
-  - `.ToAutoSubmitHtml()`: Produces self-submitting HTML with fallback styling.
-- **🎯 Minimal APIs Webhook Handler:**
-  - `app.MapRedsysWebhook("/api/payments/webhook", async (RedsysNotification notification) => ...)`
-  - Automatic cryptographic verification before invoking business logic. Responds with `400 Bad Request` if tampered.
-- **💳 S2S REST Operations & Redsys InSite:**
-  - Tokenized recurring / 1-click charges (`ExecuteStoredCardChargeAsync`).
-  - Direct refunds & preauthorizations (`ExecuteRefundAsync`, `ConfirmPreauthorizationAsync`, `CancelPreauthorizationAsync`).
-  - Embedded iframe payments without external redirection via Redsys InSite (`ExecuteInsitePaymentAsync`).
-  - Order status consultation query (`QueryOrderAsync`).
-- **🛡️ 3D Secure v2 & PSD2 SCA (EMV3DS):**
-  - Strongly-typed `RedsysEmv3Ds` context and fluent exemption configuration (`.With3DsExemption()`).
-- **🩺 ASP.NET Core Health Checks:**
-  - Built-in `builder.AddHealthCheck()` or `services.AddHealthChecks().AddRedsys()` probe verifying live gateway connectivity.
-- **📊 OpenTelemetry Distributed Tracing & Metrics:**
-  - Zero-dependency runtime instrumentation via `ActivitySource("BetterRedsys")` and `Meter("BetterRedsys")`.
-  - Tracks operations, latencies, success rates, and structured audit logs.
-- **🧪 BetterRedsys.Simulator (Separate NuGet Package):**
-  - In-memory local payment simulation (`app.UseRedsysSimulator()`).
-  - Interactive bilingual UI to simulate approvals, insufficient funds, expired cards, 3DS failures, and cancelations.
-  - Dispatches an authentic HMAC-SHA256 signed HTTP POST to the local webhook without `ngrok`.
-  - Simulates direct server-to-server REST operations (refunds, COF charges, InSite, order queries, preauthorizations).
+* **Rendimiento y Native AOT:** Cero reflexión para JSON mediante `System.Text.Json` Source Generators. Preparada para contenedores mínimos y microservicios serverless.
+* **Criptografía estricta:** Diversificación de clave 3DES-CBC por número de pedido, firma HMAC-SHA256 y verificación en tiempo constante (`FixedTimeEquals`) para mitigar ataques de temporización.
+* **Bizum de primer nivel:** Soporte nativo para Bizum con validación de teléfonos móviles españoles (`.WithBizum()`, `.WithCardOrBizum()`).
+* **Arquitectura dual:**
+  * `.ToFormData()`: DTO limpio para aplicaciones desacopladas (React, Next.js, Vue, Blazor, apps móviles).
+  * `.ToAutoSubmitHtml()`: Redirección automática accesible desde el servidor.
+* **Minimal APIs Webhook:** Middleware `MapRedsysWebhook` con validación criptográfica automática antes de ejecutar tu lógica de negocio.
+* **Operaciones REST directas (S2S):** Consulta de pedidos (tipo J), devoluciones, cobros con tarjeta guardada (Card-On-File) y preautorizaciones.
+* **Redsys InSite:** Soporte para cobros embebidos con token de operación `DS_MERCHANT_IDOPER`.
+* **Telemetría y Observabilidad:** Health checks integrados de ASP.NET Core, trazas distribuidas con `ActivitySource` y métricas con `Meter`.
+* **Simulador local incluido:** Paquete complementario `BetterRedsys.Simulator` para pruebas locales interactivas sin necesidad de túneles (`ngrok`).
 
 ---
 
-## 📦 Installation / Instalación
+## Instalación
 
 ```bash
-# Core payment client, cryptography & OpenTelemetry
+# Cliente principal, criptografía y soporte para webhooks
 dotnet add package BetterRedsys
 
-# Optional: In-memory local payment & REST gateway simulator for development
+# Opcional: Simulador interactivo en memoria para entorno de desarrollo
 dotnet add package BetterRedsys.Simulator
 ```
 
 ---
 
-## 🛠️ Quick Start / Inicio Rápido
+## Inicio Rápido (5 minutos)
 
-### 1. Fluent Dependency Injection (`Program.cs`)
+### 1. Configuración del servicio (`Program.cs`)
 
 ```csharp
 using BetterRedsys.Configuration;
 using BetterRedsys.Endpoints;
 using BetterRedsys.Models;
 using BetterRedsys.Services;
-using BetterRedsys.Simulator; // When using BetterRedsys.Simulator
+using BetterRedsys.Simulator;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Fluent configuration with eager startup validation (ValidateOnStart)
+// Configuración fluida con validación al arrancar
 var redsysBuilder = builder.Services.AddBetterRedsys(options =>
 {
-    options.UseTest(fuc: "999008881", terminal: "1", secretKey: "sq7HjrUOBfKmC576ILgskD5srURiUz6U")
-           .WithEuros()
-           .WithWebhooks(notificationUrl: "/api/payments/webhook", okUrl: "/checkout/success", koUrl: "/checkout/cancel");
+    options.UseTest(
+        fuc: "999008881",
+        terminal: "1",
+        secretKey: "sq7HjrUOBfKmC576ILgskD5srURiUz6U"
+    )
+    .WithEuros()
+    .WithWebhooks(
+        notificationUrl: "/api/pagos/webhook",
+        okUrl: "/pedido-exitoso",
+        koUrl: "/pedido-cancelado"
+    );
 })
-.AddHealthCheck(); // Built-in Health Check
+.AddHealthCheck();
 
-// Optional: Enable simulator in development
+// Activar simulador en desarrollo
 if (builder.Environment.IsDevelopment())
 {
     redsysBuilder.AddSimulator();
@@ -98,69 +75,68 @@ if (builder.Environment.IsDevelopment())
 
 var app = builder.Build();
 
+app.MapHealthChecks("/health");
+
 if (app.Environment.IsDevelopment())
 {
     app.UseRedsysSimulator();
 }
 ```
 
-### 2. Decoupled Checkout for React / Next.js
+### 2. Generar el pago desde un endpoint
 
 ```csharp
-app.MapPost("/api/checkout/create-payment", (IRedsysClient redsysClient) =>
+app.MapPost("/api/checkout/crear-pago", (IRedsysClient redsysClient, PedidoDto pedido) =>
 {
-    RedsysPaymentResponseData formData = redsysClient
-        .CreatePayment(order: "2026102201", amount: 29.99m)
-        .WithDescription("Premium Subscription")
+    var formData = redsysClient
+        .CreatePayment(order: pedido.NumeroPedido, amount: pedido.Importe)
+        .WithDescription("Compra en tienda online")
         .WithCardOrBizum()
-        .WithConsumerLanguage(RedsysLanguage.English)
-        .WithCustomerPhone("+34 612 345 678")
+        .WithCustomerPhone(pedido.TelefonoMovil)
         .ToFormData();
 
     return Results.Ok(formData);
 });
 ```
 
-### 3. Server Redirect with Multilanguage HTML
+### 3. Recibir y validar la notificación (Webhook)
 
 ```csharp
-app.MapGet("/checkout/pay/{order}", (string order, IRedsysClient redsysClient) =>
+app.MapRedsysWebhook("/api/pagos/webhook", async (RedsysNotification notification) =>
 {
-    string html = redsysClient
-        .CreatePayment(order, 19.95m)
-        .WithBizum()
-        .WithConsumerLanguage(RedsysLanguage.English)
-        .ToAutoSubmitHtml(RedsysLanguage.English);
-
-    return Results.Content(html, "text/html");
-});
-```
-
-### 4. Verified Webhook Endpoint
-
-```csharp
-app.MapRedsysWebhook("/api/payments/webhook", async (RedsysNotification notification) =>
-{
+    // Si la firma es inválida, BetterRedsys responde 400 Bad Request automáticamente
     if (!notification.IsSuccess)
     {
-        // Bilingual descriptions available:
-        Console.WriteLine($"[KO] Spanish: {notification.ResponseDescription}");
-        Console.WriteLine($"[KO] English: {notification.ResponseDescriptionEn}");
+        Console.WriteLine($"Pago rechazado: {notification.ResponseDescription}");
         return Results.Ok();
     }
 
-    if (notification.IsBizum)
-    {
-        Console.WriteLine($"Paid with Bizum: {notification.Amount.ToDisplayString()}");
-    }
+    Console.WriteLine($"Pago autorizado: Pedido {notification.Order}, Importe: {notification.Amount.ToDisplayString()}");
+    Console.WriteLine($"¿Procesado con Bizum?: {notification.IsBizum}");
 
-    await CompleteOrderAsync(notification.Order);
+    await ConfirmarPedidoEnBaseDeDatosAsync(notification.Order);
     return Results.Ok();
 });
+
+app.Run();
 ```
 
 ---
 
-## 📄 License
+## Documentación Completa
 
-MIT © Jose Sagasta
+Para guías detalladas y ejemplos de cada funcionalidad, consulta la documentación en la carpeta `docs/`:
+
+* [Configuración y Opciones](docs/configuration.md): Presets de test/producción, `appsettings.json`, validación temprana y builder pattern.
+* [Pagos y Bizum](docs/payments-and-bizum.md): Creación de pagos, frontends desacoplados (React/Vue), redirección HTML, reglas de Bizum y 3DS v2.
+* [Webhooks y Notificaciones](docs/webhooks.md): Verificación criptográfica automática, catálogo de respuestas bilingüe e idempotencia.
+* [Operaciones REST Servidor a Servidor](docs/rest-operations.md): Consulta de pedidos online (tipo J), devoluciones directas y cobro con tarjeta almacenada (COF).
+* [Redsys InSite](docs/insite.md): Integración con formulario embebido mediante `DS_MERCHANT_IDOPER`.
+* [Telemetría, Salud y Auditoría](docs/telemetry.md): ASP.NET Core Health Checks, trazas distribuidas con OpenTelemetry y métricas Prometheus.
+* [Simulador Local](docs/simulator.md): Pruebas completas en desarrollo local sin `ngrok` ni dependencias externas.
+
+---
+
+## Licencia
+
+Distribuido bajo licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más información.
