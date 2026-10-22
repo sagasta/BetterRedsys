@@ -13,7 +13,9 @@ internal static class SimulatorUiResources
     private static readonly string SimulatorCss = LoadString("BetterRedsys.Simulator.UI.simulator.css");
     private static readonly string SimulatorJs = LoadString("BetterRedsys.Simulator.UI.simulator.js");
     private static readonly string SimulatorHtml = LoadString("BetterRedsys.Simulator.UI.simulator.html")
+        .Replace("/* {{CSS}} */", SimulatorCss)
         .Replace("{{CSS}}", SimulatorCss)
+        .Replace("/* {{JS}} */", SimulatorJs)
         .Replace("{{JS}}", SimulatorJs);
 
     private static readonly string LandingHtml = LoadString("BetterRedsys.Simulator.UI.landing.html");
