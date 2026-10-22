@@ -163,6 +163,19 @@ Para guías detalladas y ejemplos de cada funcionalidad, consulta la documentaci
 
 ---
 
+## 💖 Support & Sponsoring
+
+Si **BetterRedsys** te ha ayudado a integrar la pasarela de pagos, ahorrar tiempo de desarrollo o asegurar tus transacciones con Native AOT, considera apoyar el mantenimiento continuo del proyecto:
+
+<p align="left">
+  <a href="https://buymeacoffee.com/sagasta" target="_blank">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="48" />
+  </a>
+</p>
+
+---
+
 ## Licencia
 
 Distribuido bajo licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más información.
+
