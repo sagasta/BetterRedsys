@@ -1,6 +1,7 @@
 using BetterRedsys.Configuration;
 using BetterRedsys.Endpoints;
 using BetterRedsys.Models;
+using BetterRedsys.SampleApi;
 using BetterRedsys.Services;
 using BetterRedsys.Simulator;
 
@@ -124,15 +125,40 @@ app.MapGet("/api/pedidos/{order}/consulta", async (string order, IRedsysClient r
     });
 });
 
-// 7. Endpoint para redirección directa clásica desde el servidor
-// Devuelve una página HTML autoejecutable que envía el formulario automáticamente al cargar
+// Memoria para registrar pedidos pagados y correlacionar con los webhooks en tiempo real
+var ordersDb = new System.Collections.Concurrent.ConcurrentDictionary<string, PaymentRecord>();
+
+// 7. Endpoint para iniciar el pago desde la tienda online
+app.MapPost("/checkout/pagar", async (HttpRequest req, IRedsysClient redsysClient) =>
+{
+    var form = await req.ReadFormAsync();
+    var order = form["order"].ToString();
+    if (string.IsNullOrWhiteSpace(order)) order = DateTime.UtcNow.ToString("yyMMddHHmmss");
+    var phone = form["customerPhone"].ToString();
+    if (string.IsNullOrWhiteSpace(phone)) phone = "+34 612 345 678";
+
+    var html = redsysClient
+        .CreatePayment(order, 49.95m)
+        .WithCardOrBizum() // Permite tanto Tarjeta como Bizum en la pasarela
+        .WithCustomerPhone(phone)
+        .WithDescription("Auriculares Inalámbricos Pro ANC")
+        .WithSuccessUrl($"/pedido-exitoso?order={order}")
+        .WithCancelUrl($"/pedido-cancelado?order={order}")
+        .ToAutoSubmitHtml();
+
+    return Results.Content(html, "text/html");
+});
+
+// Endpoint directo por URL para pruebas rápidas
 app.MapGet("/checkout/pagar/{order}", (string order, IRedsysClient redsysClient) =>
 {
     var html = redsysClient
         .CreatePayment(order, 49.95m)
-        .WithBizum() // Forzar Bizum
+        .WithCardOrBizum()
         .WithCustomerPhone("+34 612 345 678")
-        .WithDescription("Suscripción Mensual")
+        .WithDescription("Compra Directa")
+        .WithSuccessUrl($"/pedido-exitoso?order={order}")
+        .WithCancelUrl($"/pedido-cancelado?order={order}")
         .ToAutoSubmitHtml();
 
     return Results.Content(html, "text/html");
@@ -148,7 +174,18 @@ app.MapRedsysWebhook("/api/pagos/webhook", async notification =>
     Console.WriteLine($"[Redsys Webhook] ¿Procesado con Bizum?: {notification.IsBizum}");
     Console.WriteLine($"[Redsys Webhook] Detalle: {notification.ResponseDescription}");
 
-    // Si la operación incluyó tokenización de tarjeta (COF)
+    // Guardar en la base de datos en memoria para alimentar la pantalla de confirmación
+    ordersDb[notification.Order] = new PaymentRecord(
+        Order: notification.Order,
+        Amount: notification.Amount.ToDisplayString(),
+        ResponseCode: notification.ResponseCode,
+        Description: notification.ResponseDescription,
+        IsSuccess: notification.IsSuccess,
+        IsBizum: notification.IsBizum,
+        AuthorisationCode: notification.AuthorisationCode,
+        ReceivedAt: DateTime.Now
+    );
+
     if (!string.IsNullOrEmpty(notification.Identifier))
     {
         Console.WriteLine($"[Redsys Webhook] Token de tarjeta (COF) generado: {notification.Identifier}, Caducidad: {notification.ExpiryDate}");
@@ -156,20 +193,33 @@ app.MapRedsysWebhook("/api/pagos/webhook", async notification =>
 
     if (!notification.IsSuccess)
     {
-        // Registrar rechazo o alertar al sistema
         return Results.Ok(new { status = "rejected", reason = notification.ResponseDescription });
     }
 
-    // Procesar pedido pagado (actualizar base de datos, guardar token si aplica, enviar email...)
     await Task.Delay(10); // Simulación de lógica de negocio asíncrona
-
     return Results.Ok(new { status = "success", order = notification.Order });
 });
 
-// Páginas de retorno de ejemplo
-app.MapGet("/pedido-exitoso", (string? order) => Results.Ok($"¡Gracias por tu compra! Tu pedido {order} ha sido completado con éxito."));
-app.MapGet("/pedido-cancelado", (string? order) => Results.Ok($"El pedido {order} fue cancelado o rechazado."));
-app.MapGet("/", () => Results.Redirect("/checkout/pagar/2026102201"));
+// Páginas del flujo de compra e-commerce
+app.MapGet("/", () =>
+{
+    var newOrder = DateTime.UtcNow.ToString("yyMMddHHmmss");
+    return Results.Content(StorePages.RenderStorefront(newOrder, 49.95m), "text/html");
+});
+
+app.MapGet("/pedido-exitoso", (string? order) =>
+{
+    var orderKey = order ?? "";
+    ordersDb.TryGetValue(orderKey, out var record);
+    return Results.Content(StorePages.RenderSuccess(orderKey, record), "text/html");
+});
+
+app.MapGet("/pedido-cancelado", (string? order) =>
+{
+    var orderKey = order ?? "";
+    ordersDb.TryGetValue(orderKey, out var record);
+    return Results.Content(StorePages.RenderCancel(orderKey, record), "text/html");
+});
 
 app.Run();
 
