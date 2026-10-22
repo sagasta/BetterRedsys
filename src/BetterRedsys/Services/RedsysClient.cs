@@ -89,9 +89,9 @@ public sealed class RedsysClient(
             notification = RedsysNotification.Create(dto, merchantParametersBase64, signature);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
-            errorMessage = $"Error processing Redsys notification payload: {ex.Message}";
+            errorMessage = "The notification payload is malformed or corrupted.";
             return false;
         }
     }

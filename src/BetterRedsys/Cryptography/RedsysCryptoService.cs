@@ -8,8 +8,6 @@ namespace BetterRedsys.Cryptography;
 /// </summary>
 public sealed class RedsysCryptoService : IRedsysCryptoService
 {
-    private static readonly byte[] ZeroIv = new byte[8];
-
     /// <inheritdoc />
     public byte[] DiversifyKey(string secretKeyBase64, string order)
     {
@@ -19,26 +17,33 @@ public sealed class RedsysCryptoService : IRedsysCryptoService
         string normalizedKey = NormalizeBase64(secretKeyBase64);
         byte[] keyBytes = Convert.FromBase64String(normalizedKey);
 
-        byte[] orderBytes = Encoding.UTF8.GetBytes(order);
-
-        // Redsys requires the order string to be padded with zeroes on the right
-        // until its byte length is an exact multiple of 8 bytes (3DES block size).
-        int remainder = orderBytes.Length % 8;
-        byte[] paddedOrderBytes = orderBytes;
-        if (remainder != 0)
+        try
         {
-            paddedOrderBytes = new byte[orderBytes.Length + (8 - remainder)];
-            Buffer.BlockCopy(orderBytes, 0, paddedOrderBytes, 0, orderBytes.Length);
+            byte[] orderBytes = Encoding.UTF8.GetBytes(order);
+
+            // Redsys requires the order string to be padded with zeroes on the right
+            // until its byte length is an exact multiple of 8 bytes (3DES block size).
+            int remainder = orderBytes.Length % 8;
+            byte[] paddedOrderBytes = orderBytes;
+            if (remainder != 0)
+            {
+                paddedOrderBytes = new byte[orderBytes.Length + (8 - remainder)];
+                Buffer.BlockCopy(orderBytes, 0, paddedOrderBytes, 0, orderBytes.Length);
+            }
+
+            using var tripleDes = TripleDES.Create();
+            tripleDes.Key = keyBytes;
+            tripleDes.Mode = CipherMode.CBC;
+            tripleDes.Padding = PaddingMode.None; // Zero padding is manually performed above
+            tripleDes.IV = new byte[8];
+
+            using var encryptor = tripleDes.CreateEncryptor();
+            return encryptor.TransformFinalBlock(paddedOrderBytes, 0, paddedOrderBytes.Length);
         }
-
-        using var tripleDes = TripleDES.Create();
-        tripleDes.Key = keyBytes;
-        tripleDes.Mode = CipherMode.CBC;
-        tripleDes.Padding = PaddingMode.None; // Zero padding is manually performed above
-        tripleDes.IV = ZeroIv;
-
-        using var encryptor = tripleDes.CreateEncryptor();
-        return encryptor.TransformFinalBlock(paddedOrderBytes, 0, paddedOrderBytes.Length);
+        finally
+        {
+            CryptographicOperations.ZeroMemory(keyBytes);
+        }
     }
 
     /// <inheritdoc />
@@ -63,9 +68,10 @@ public sealed class RedsysCryptoService : IRedsysCryptoService
             return false;
         }
 
+        byte[]? diversifiedKey = null;
         try
         {
-            byte[] diversifiedKey = DiversifyKey(secretKeyBase64, order);
+            diversifiedKey = DiversifyKey(secretKeyBase64, order);
             using var hmac = new HMACSHA256(diversifiedKey);
             byte[] computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(merchantParametersBase64));
 
@@ -77,6 +83,13 @@ public sealed class RedsysCryptoService : IRedsysCryptoService
         catch
         {
             return false;
+        }
+        finally
+        {
+            if (diversifiedKey != null)
+            {
+                CryptographicOperations.ZeroMemory(diversifiedKey);
+            }
         }
     }
 

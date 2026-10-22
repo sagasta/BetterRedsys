@@ -44,6 +44,13 @@ public sealed class RedsysDevMockMiddleware
     /// </summary>
     public async Task InvokeAsync(HttpContext context)
     {
+        // Production & feature guard: do not intercept requests if DevMock is disabled or running in Production
+        if (_options.IsProduction || !_options.UseDevMock)
+        {
+            await _next(context);
+            return;
+        }
+
         string path = context.Request.Path.Value ?? string.Empty;
         string mockBasePath = _options.DevMockPath.TrimEnd('/');
 
@@ -240,7 +247,7 @@ public sealed class RedsysDevMockMiddleware
             byte[] diversifiedKey = _cryptoService.DiversifyKey(_options.SecretKey, simRequest.Order);
             string signature = _cryptoService.ComputeSignature(notifParamsBase64, diversifiedKey);
 
-            // Determine target webhook URL
+            // Determine target webhook URL and apply SSRF protection
             string targetWebhookUrl = simRequest.MerchantUrl ?? _options.MerchantUrl ?? string.Empty;
             if (string.IsNullOrWhiteSpace(targetWebhookUrl))
             {
@@ -250,11 +257,31 @@ public sealed class RedsysDevMockMiddleware
                 return;
             }
 
-            // Compose with local origin if relative
+            // Compose with local origin if relative, or validate host if absolute to prevent SSRF
             if (Uri.TryCreate(targetWebhookUrl, UriKind.Relative, out _))
             {
                 string baseUrl = $"{context.Request.Scheme}://{context.Request.Host}";
                 targetWebhookUrl = $"{baseUrl}/{targetWebhookUrl.TrimStart('/')}";
+            }
+            else if (Uri.TryCreate(targetWebhookUrl, UriKind.Absolute, out Uri? absoluteUri))
+            {
+                bool isAllowedHost = string.Equals(absoluteUri.Host, context.Request.Host.Host, StringComparison.OrdinalIgnoreCase) ||
+                                     string.Equals(targetWebhookUrl, _options.MerchantUrl, StringComparison.OrdinalIgnoreCase);
+
+                if (!isAllowedHost)
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                    var errResponse = new DevMockSimulationResponse(false, 400, null, null, "SSRF Protection: Webhook simulation cannot target unauthorized external hosts.");
+                    await context.Response.WriteAsJsonAsync(errResponse, DevMockJsonContext.Default.DevMockSimulationResponse);
+                    return;
+                }
+            }
+            else
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                var errResponse = new DevMockSimulationResponse(false, 400, null, null, "Invalid webhook target URI format.");
+                await context.Response.WriteAsJsonAsync(errResponse, DevMockJsonContext.Default.DevMockSimulationResponse);
+                return;
             }
 
             // Dispatch HTTP POST to merchant webhook
@@ -292,26 +319,48 @@ public sealed class RedsysDevMockMiddleware
 
     private string GenerateDevMockHtml(RedsysMerchantParametersDto? p, HttpRequest req)
     {
-        string order = p?.Order ?? "000000";
+        string rawOrder = p?.Order ?? "000000";
         string rawAmount = p?.Amount ?? "0";
+        string rawMerchantCode = p?.MerchantCode ?? _options.Fuc;
+        string rawTerminal = p?.Terminal ?? _options.Terminal;
+        string rawCurrency = p?.Currency ?? _options.Currency;
+        string rawMerchantUrl = p?.MerchantUrl ?? _options.MerchantUrl ?? "";
+        string rawUrlOk = p?.UrlOk ?? _options.UrlOk ?? "";
+        string rawUrlKo = p?.UrlKo ?? _options.UrlKo ?? "";
+        string rawMerchantData = p?.MerchantData ?? "";
+
+        var initialData = new DevMockSimulationInitialData(
+            rawOrder,
+            rawAmount,
+            rawCurrency,
+            rawMerchantCode,
+            rawTerminal,
+            rawMerchantUrl,
+            rawUrlOk,
+            rawUrlKo,
+            rawMerchantData);
+
+        string initialDataJson = JsonSerializer.Serialize(initialData, DevMockJsonContext.Default.DevMockSimulationInitialData);
+
         long.TryParse(rawAmount, out long cents);
         var amount = new RedsysAmount(cents);
-        string displayAmount = amount.ToDisplayString();
-        string merchantCode = p?.MerchantCode ?? _options.Fuc;
-        string terminal = p?.Terminal ?? _options.Terminal;
-        string currency = p?.Currency ?? _options.Currency;
-        string payMethods = p?.PayMethods ?? "Tarjeta / Card";
-        string phone = p?.CustomerMobile ?? "(Not specified / No especificado)";
-        string desc = p?.ProductDescription ?? "No description / Sin descripción";
-        string merchantUrl = p?.MerchantUrl ?? _options.MerchantUrl ?? "";
-        string urlOk = p?.UrlOk ?? _options.UrlOk ?? "";
-        string urlKo = p?.UrlKo ?? _options.UrlKo ?? "";
-        string merchantData = p?.MerchantData ?? "";
-        string consumerLangCode = p?.ConsumerLanguage ?? "001";
-        RedsysLanguage consumerLang = RedsysLanguageExtensions.FromRedsysCode(consumerLangCode);
-        bool isBizumAvailable = payMethods.Contains('z', StringComparison.OrdinalIgnoreCase);
 
-        string dispatchUrl = $"{req.PathBase}{_options.DevMockPath.TrimEnd('/')}/dispatch-webhook";
+        string order = WebUtility.HtmlEncode(rawOrder);
+        string displayAmount = WebUtility.HtmlEncode(amount.ToDisplayString());
+        string merchantCode = WebUtility.HtmlEncode(rawMerchantCode);
+        string terminal = WebUtility.HtmlEncode(rawTerminal);
+        string currency = WebUtility.HtmlEncode(rawCurrency);
+        string payMethods = WebUtility.HtmlEncode(p?.PayMethods ?? "Tarjeta / Card");
+        string phone = WebUtility.HtmlEncode(p?.CustomerMobile ?? "(Not specified / No especificado)");
+        string desc = WebUtility.HtmlEncode(p?.ProductDescription ?? "No description / Sin descripción");
+        string merchantUrl = WebUtility.HtmlEncode(rawMerchantUrl);
+        string urlOk = WebUtility.HtmlEncode(rawUrlOk);
+        string urlKo = WebUtility.HtmlEncode(rawUrlKo);
+        string consumerLangCode = WebUtility.HtmlEncode(p?.ConsumerLanguage ?? "001");
+        RedsysLanguage consumerLang = RedsysLanguageExtensions.FromRedsysCode(p?.ConsumerLanguage ?? "001");
+        bool isBizumAvailable = (p?.PayMethods ?? "").Contains('z', StringComparison.OrdinalIgnoreCase);
+
+        string dispatchUrl = WebUtility.HtmlEncode($"{req.PathBase}{_options.DevMockPath.TrimEnd('/')}/dispatch-webhook");
 
         return $$"""
         <!DOCTYPE html>
@@ -519,6 +568,9 @@ public sealed class RedsysDevMockMiddleware
                 </div>
             </div>
 
+            <script id="devMockData" type="application/json">
+                {{initialDataJson}}
+            </script>
             <script>
                 async function simulatePayment() {
                     const btn = document.getElementById('btnSimulate');
@@ -533,16 +585,9 @@ public sealed class RedsysDevMockMiddleware
                     statusBox.style.display = 'block';
                     redirectActions.style.display = 'none';
 
+                    const baseData = JSON.parse(document.getElementById('devMockData').textContent);
                     const payload = {
-                        order: '{{order}}',
-                        amount: '{{rawAmount}}',
-                        currency: '{{currency}}',
-                        merchantCode: '{{merchantCode}}',
-                        terminal: '{{terminal}}',
-                        merchantUrl: '{{merchantUrl}}',
-                        urlOk: '{{urlOk}}',
-                        urlKo: '{{urlKo}}',
-                        merchantData: '{{merchantData}}',
+                        ...baseData,
                         responseCode: document.getElementById('selectResponse').value,
                         processedPayMethod: document.getElementById('selectMethod').value,
                         authorisationCode: document.getElementById('authCode').value
@@ -565,21 +610,20 @@ public sealed class RedsysDevMockMiddleware
                                 ? '<span class="status-badge status-200">HTTP ' + data.webhookStatus + ' OK</span> Webhook processed successfully / Webhook procesado con éxito' 
                                 : '<span class="status-badge status-err">HTTP ' + data.webhookStatus + '</span> Webhook returned error / El webhook devolvió error';
                             
-                            statusDetail.innerHTML = '<strong>Endpoint Response:</strong> ' + (data.webhookResponse || '(Empty body)') +
-                                                     '<br><strong>Signature:</strong> Generated with official 3DES + HMAC-SHA256.';
+                            statusDetail.textContent = 'Endpoint Response: ' + (data.webhookResponse || '(Empty body)') + ' | Signature: Verified HMAC-SHA256.';
 
                             redirectActions.style.display = 'block';
                             btnRedirect.href = data.redirectUrl;
                             btnRedirect.innerText = 'Navigate to ' + (payload.responseCode === '0000' ? 'URL OK' : 'URL KO') + ' (' + data.redirectUrl + ')';
                         } else {
                             statusHeader.innerHTML = '<span class="status-badge status-err">ERROR</span> Simulation error';
-                            statusDetail.innerText = data.error || 'Unknown error';
+                            statusDetail.textContent = data.error || 'Unknown error';
                         }
                     } catch (err) {
                         btn.disabled = false;
                         btn.innerText = '🚀 Retry simulation / Reintentar';
                         statusHeader.innerHTML = '<span class="status-badge status-err">NETWORK ERROR</span>';
-                        statusDetail.innerText = err.message;
+                        statusDetail.textContent = err.message;
                     }
                 }
             </script>
@@ -624,6 +668,20 @@ public sealed class RedsysDevMockMiddleware
 }
 
 /// <summary>
+/// JSON initial order parameters embedded in DevMock UI.
+/// </summary>
+public sealed record DevMockSimulationInitialData(
+    [property: JsonPropertyName("order")] string? Order,
+    [property: JsonPropertyName("amount")] string? Amount,
+    [property: JsonPropertyName("currency")] string? Currency,
+    [property: JsonPropertyName("merchantCode")] string? MerchantCode,
+    [property: JsonPropertyName("terminal")] string? Terminal,
+    [property: JsonPropertyName("merchantUrl")] string? MerchantUrl,
+    [property: JsonPropertyName("urlOk")] string? UrlOk,
+    [property: JsonPropertyName("urlKo")] string? UrlKo,
+    [property: JsonPropertyName("merchantData")] string? MerchantData);
+
+/// <summary>
 /// Internal JSON simulation request model used by DevMock.
 /// </summary>
 public sealed record DevMockSimulationRequest(
@@ -654,6 +712,7 @@ public sealed record DevMockSimulationResponse(
 /// System.Text.Json context for DevMock simulation (Native AOT ready).
 /// </summary>
 [JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Default)]
+[JsonSerializable(typeof(DevMockSimulationInitialData))]
 [JsonSerializable(typeof(DevMockSimulationRequest))]
 [JsonSerializable(typeof(DevMockSimulationResponse))]
 internal sealed partial class DevMockJsonContext : JsonSerializerContext
