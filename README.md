@@ -20,7 +20,7 @@ Librería moderna, de alto rendimiento y compatible con **Native AOT** para inte
 
 * **Rendimiento y Native AOT:** Cero reflexión para JSON mediante `System.Text.Json` Source Generators. Preparada para contenedores mínimos y microservicios serverless.
 * **Criptografía estricta:** Diversificación de clave 3DES-CBC por número de pedido, firma HMAC-SHA256 y verificación en tiempo constante (`FixedTimeEquals`) para mitigar ataques de temporización.
-* **Bizum de primer nivel:** Soporte nativo para Bizum con validación de teléfonos móviles españoles (`.WithBizum()`, `.WithCardOrBizum()`).
+* **Bizum de primer nivel:** Soporte nativo para Bizum (`.WithBizum()`, `.WithCardOrBizum()`) y notificaciones con detección automática de pagos Bizum (`IsBizum`).
 * **Arquitectura dual:**
   * `.ToFormData()`: DTO limpio para aplicaciones desacopladas (React, Next.js, Vue, Blazor, apps móviles).
   * `.ToAutoSubmitHtml()`: Redirección automática accesible desde el servidor.
@@ -118,7 +118,6 @@ app.MapPost("/api/checkout/crear-pago", (IRedsysClient redsysClient, PedidoDto p
         .CreatePayment(order: pedido.NumeroPedido, amount: pedido.Importe)
         .WithDescription("Compra en tienda online")
         .WithCardOrBizum()
-        .WithCustomerPhone(pedido.TelefonoMovil)
         .ToFormData();
 
     return Results.Ok(formData);

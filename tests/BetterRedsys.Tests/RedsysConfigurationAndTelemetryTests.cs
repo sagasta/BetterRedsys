@@ -263,4 +263,14 @@ public class RedsysConfigurationAndTelemetryTests
         var second = sp.GetRequiredService<IRedsysClient>();
         Assert.Same(first, second);
     }
+    [Fact]
+    public void TelemetryVersion_MatchesPackageVersion()
+    {
+        var assemblyVersion = typeof(RedsysTelemetry).Assembly.GetName().Version!.ToString(3);
+
+        Assert.StartsWith(assemblyVersion, RedsysTelemetry.Version);
+        Assert.Equal(RedsysTelemetry.Version, RedsysTelemetry.ActivitySource.Version);
+        Assert.Equal(RedsysTelemetry.Version, RedsysTelemetry.Meter.Version);
+        Assert.DoesNotContain("+", RedsysTelemetry.Version);
+    }
 }

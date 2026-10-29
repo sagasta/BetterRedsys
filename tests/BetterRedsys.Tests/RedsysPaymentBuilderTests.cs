@@ -164,4 +164,41 @@ public class RedsysPaymentBuilderTests
         Assert.Contains("<style>", html);
         Assert.Contains("<script>", html);
     }
+    [Fact]
+    public void WithBizum_SetsBizumPayMethod()
+    {
+        var json = GetMerchantParametersJson(b => b.WithBizum());
+
+        Assert.Contains("\"DS_MERCHANT_PAYMETHODS\":\"z\"", json);
+    }
+
+    [Fact]
+    public void WithCard_SetsCardPayMethod()
+    {
+        var json = GetMerchantParametersJson(b => b.WithCard());
+
+        Assert.Contains("\"DS_MERCHANT_PAYMETHODS\":\"C\"", json);
+    }
+
+    [Fact]
+    public void WithCardOrBizum_OmitsPayMethods_SoGatewayShowsAllEnabledMethods()
+    {
+        var json = GetMerchantParametersJson(b => b.WithBizum().WithCardOrBizum());
+
+        Assert.DoesNotContain("DS_MERCHANT_PAYMETHODS", json);
+    }
+
+    [Fact]
+    public void WithAllPaymentMethods_OmitsPayMethods()
+    {
+        var json = GetMerchantParametersJson(b => b.WithCard().WithAllPaymentMethods());
+
+        Assert.DoesNotContain("DS_MERCHANT_PAYMETHODS", json);
+    }
+
+    private string GetMerchantParametersJson(Func<RedsysPaymentBuilder, RedsysPaymentBuilder> configure)
+    {
+        var data = configure(CreateClient().CreatePayment("2026102201", 10m)).ToFormData();
+        return Encoding.UTF8.GetString(Convert.FromBase64String(data.MerchantParameters));
+    }
 }

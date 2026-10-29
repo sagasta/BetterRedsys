@@ -71,16 +71,34 @@ public sealed class RedsysPaymentBuilder
     }
 
     /// <summary>
-    /// Allows the customer to choose between standard Credit/Debit Card or Bizum (DS_MERCHANT_PAYMETHODS = "z,T").
+    /// Forces payment exclusively via Credit/Debit Card (DS_MERCHANT_PAYMETHODS = "C").
     /// </summary>
-    public RedsysPaymentBuilder WithCardOrBizum()
+    public RedsysPaymentBuilder WithCard()
     {
-        _payMethods = "z,T";
+        _payMethods = "C";
         return this;
     }
 
     /// <summary>
-    /// Configures and validates a Spanish mobile phone number to prefill into the Bizum gateway interface.
+    /// Lets the customer choose any payment method enabled on the terminal (DS_MERCHANT_PAYMETHODS is omitted).
+    /// </summary>
+    public RedsysPaymentBuilder WithAllPaymentMethods()
+    {
+        _payMethods = null;
+        return this;
+    }
+
+    /// <summary>
+    /// Allows the customer to choose between Credit/Debit Card or Bizum.
+    /// Redsys does not document a value combining both methods, so this omits DS_MERCHANT_PAYMETHODS
+    /// and the gateway shows every method enabled on the terminal (card and Bizum, when Bizum is active).
+    /// Equivalent to <see cref="WithAllPaymentMethods"/>.
+    /// </summary>
+    public RedsysPaymentBuilder WithCardOrBizum() => WithAllPaymentMethods();
+
+    /// <summary>
+    /// Sets the customer mobile phone (DS_MERCHANT_CUSTOMER_MOBILE), used by Paygold / pay-by-link operations to send the payment SMS.
+    /// It does not prefill the Bizum phone in redirection payments: the Bizum page asks the customer for it.
     /// Validates that it contains 9 digits starting with 6 or 7 (supports +34 or 0034 international prefixes).
     /// </summary>
     /// <param name="phone">Customer mobile phone number.</param>

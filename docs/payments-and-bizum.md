@@ -16,8 +16,7 @@ app.MapPost("/api/checkout/crear-pago", (IRedsysClient redsysClient, PedidoDto p
     var formData = redsysClient
         .CreatePayment(order: pedido.NumeroPedido, amount: pedido.Importe)
         .WithDescription("Compra en tienda online")
-        .WithCardOrBizum() // Permite tanto Tarjeta como Bizum
-        .WithCustomerPhone(pedido.TelefonoMovil)
+        .WithCardOrBizum() // Muestra todos los métodos activos en el terminal (Tarjeta y Bizum)
         .WithSuccessUrl($"/pedido-exitoso?order={pedido.NumeroPedido}")
         .WithCancelUrl($"/pedido-cancelado?order={pedido.NumeroPedido}")
         .ToFormData();
@@ -66,7 +65,6 @@ app.MapGet("/checkout/pagar/{order}", (string order, IRedsysClient redsysClient)
     var html = redsysClient
         .CreatePayment(order, 49.95m)
         .WithCardOrBizum()
-        .WithCustomerPhone("+34 612 345 678")
         .WithDescription("Auriculares Inalámbricos")
         .ToAutoSubmitHtml();
 
@@ -80,15 +78,31 @@ El navegador recibe una página HTML accesible y ligera que envía automáticame
 
 ## 3. Pagos con Bizum
 
-Para forzar exclusivamente el método Bizum en la pasarela, utiliza `.WithBizum()`:
+Para forzar exclusivamente el método Bizum en la pasarela, utiliza `.WithBizum()` (`DS_MERCHANT_PAYMETHODS = "z"`):
 
 ```csharp
 var pago = redsysClient
     .CreatePayment("2026102201", 25.00m)
     .WithBizum()
-    .WithCustomerPhone("+34 600 123 456") // Valida y normaliza teléfonos móviles españoles
     .ToFormData();
 ```
+
+La propia página de Bizum pide el número de móvil al cliente, así que no hace falta enviarlo.
+
+### Métodos de pago disponibles
+
+| Método | `DS_MERCHANT_PAYMETHODS` | Resultado |
+|---|---|---|
+| `.WithBizum()` | `z` | Solo Bizum |
+| `.WithCard()` | `C` | Solo tarjeta |
+| `.WithCardOrBizum()` / `.WithAllPaymentMethods()` | *(no se envía)* | Todos los métodos activos en el terminal |
+
+> [!NOTE]
+> Redsys no documenta un valor que combine tarjeta y Bizum, por lo que `.WithCardOrBizum()` no restringe los métodos: el cliente verá todos los que tenga habilitados tu terminal.
+
+### Teléfono del cliente (Paygold)
+
+`.WithCustomerPhone()` rellena `DS_MERCHANT_CUSTOMER_MOBILE`, el campo que usan las operaciones Paygold (pago por enlace enviado por SMS). **No** precarga el teléfono en la página de Bizum.
 
 ### Reglas de validación de móvil:
 * Admite prefijo internacional (`+34` o `0034`).
@@ -107,7 +121,7 @@ var pago = redsysClient
     .ToFormData();
 ```
 
-Idiomas soportados: `Spanish` (001), `English` (002), `Catalan` (003), `Galician` (004), `French` (005), `German` (006), `Basque` (013), entre otros.
+Idiomas soportados: `Spanish` (001), `English` (002), `Catalan` (003), `French` (004), `German` (005), `Dutch` (006), `Italian` (007), `Swedish` (008), `Portuguese` (009), `Valencian` (010), `Polish` (011), `Galician` (012) y `Basque` (013).
 
 ---
 

@@ -341,7 +341,7 @@ public sealed class RedsysClient(
             var notification = DecodeNotification(restResponse.MerchantParameters, restResponse.Signature);
 
             stopwatch.Stop();
-            RedsysTelemetry.S2sDurationHistogram.Record(stopwatch.ElapsedMilliseconds,
+            RedsysTelemetry.S2sDurationHistogram.Record(stopwatch.Elapsed.TotalMilliseconds,
                 new KeyValuePair<string, object?>("operation", opName));
 
             RedsysTelemetry.S2sOperationsCounter.Add(1,
@@ -360,7 +360,7 @@ public sealed class RedsysClient(
         catch (Exception ex)
         {
             stopwatch.Stop();
-            RedsysTelemetry.S2sDurationHistogram.Record(stopwatch.ElapsedMilliseconds,
+            RedsysTelemetry.S2sDurationHistogram.Record(stopwatch.Elapsed.TotalMilliseconds,
                 new KeyValuePair<string, object?>("operation", opName));
 
             RedsysTelemetry.S2sOperationsCounter.Add(1,

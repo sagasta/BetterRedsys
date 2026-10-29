@@ -380,7 +380,7 @@ public sealed class RedsysSimulatorMiddleware
         var merchantCode = WebUtility.HtmlEncode(rawMerchantCode);
         var terminal = WebUtility.HtmlEncode(rawTerminal);
         _ = WebUtility.HtmlEncode(rawCurrency);
-        var payMethods = WebUtility.HtmlEncode(p?.PayMethods ?? "Tarjeta / Card");
+        var payMethods = WebUtility.HtmlEncode(p?.PayMethods ?? "Todos / All");
         var phone = WebUtility.HtmlEncode(p?.CustomerMobile ?? "(Not specified / No especificado)");
         var desc = WebUtility.HtmlEncode(p?.ProductDescription ?? "No description / Sin descripción");
         var merchantUrl = WebUtility.HtmlEncode(rawMerchantUrl);
@@ -388,7 +388,9 @@ public sealed class RedsysSimulatorMiddleware
         var urlKo = WebUtility.HtmlEncode(rawUrlKo);
         var consumerLangCode = WebUtility.HtmlEncode(p?.ConsumerLanguage ?? "001");
         var consumerLang = RedsysLanguageExtensions.FromRedsysCode(p?.ConsumerLanguage ?? "001");
-        var isBizumAvailable = (p?.PayMethods ?? "").Contains('z', StringComparison.OrdinalIgnoreCase);
+        // No DS_MERCHANT_PAYMETHODS means every method enabled on the terminal, Bizum included
+        var isBizumAvailable = string.IsNullOrWhiteSpace(p?.PayMethods) ||
+                               p.PayMethods.Contains('z', StringComparison.OrdinalIgnoreCase);
         var bizumBadge = isBizumAvailable ? "<span class=\"bizum-pill\">Bizum</span>" : "";
 
         var dispatchUrl = $"{req.PathBase}{_simulatorOptions.Path.TrimEnd('/')}/dispatch-webhook";
@@ -398,7 +400,7 @@ public sealed class RedsysSimulatorMiddleware
             order: WebUtility.HtmlEncode(rawOrder),
             merchantCode: WebUtility.HtmlEncode(rawMerchantCode),
             terminal: WebUtility.HtmlEncode(rawTerminal),
-            payMethods: WebUtility.HtmlEncode(p?.PayMethods ?? "Tarjeta / Card"),
+            payMethods: WebUtility.HtmlEncode(p?.PayMethods ?? "Todos / All"),
             bizumBadge: bizumBadge,
             consumerLang: WebUtility.HtmlEncode(RedsysLanguageExtensions.FromRedsysCode(p?.ConsumerLanguage ?? "001").ToString()),
             consumerLangCode: WebUtility.HtmlEncode(p?.ConsumerLanguage ?? "001"),

@@ -45,7 +45,7 @@ app.MapPost("/api/checkout/crear-pago", (IRedsysClient redsysClient, CheckoutReq
     var paymentData = redsysClient
         .CreatePayment(request.Order, request.Amount)
         .WithDescription(request.Description ?? "Compra en Tienda Online")
-        .WithCardOrBizum() // Permite tanto Tarjeta como Bizum
+        .WithCardOrBizum() // Muestra todos los métodos activos en el terminal (Tarjeta y Bizum)
         .WithSuccessUrl($"/pedido-exitoso?order={request.Order}")
         .WithCancelUrl($"/pedido-cancelado?order={request.Order}")
         .ToFormData();
@@ -134,13 +134,10 @@ app.MapPost("/checkout/pagar", async (HttpRequest req, IRedsysClient redsysClien
     var form = await req.ReadFormAsync();
     var order = form["order"].ToString();
     if (string.IsNullOrWhiteSpace(order)) order = DateTime.UtcNow.ToString("yyMMddHHmmss");
-    var phone = form["customerPhone"].ToString();
-    if (string.IsNullOrWhiteSpace(phone)) phone = "+34 612 345 678";
 
     var html = redsysClient
         .CreatePayment(order, 49.95m)
-        .WithCardOrBizum() // Permite tanto Tarjeta como Bizum en la pasarela
-        .WithCustomerPhone(phone)
+        .WithCardOrBizum() // Muestra todos los métodos activos en el terminal (Tarjeta y Bizum)
         .WithDescription("Auriculares Inalámbricos Pro ANC")
         .WithSuccessUrl($"/pedido-exitoso?order={order}")
         .WithCancelUrl($"/pedido-cancelado?order={order}")
@@ -155,7 +152,6 @@ app.MapGet("/checkout/pagar/{order}", (string order, IRedsysClient redsysClient)
     var html = redsysClient
         .CreatePayment(order, 49.95m)
         .WithCardOrBizum()
-        .WithCustomerPhone("+34 612 345 678")
         .WithDescription("Compra Directa")
         .WithSuccessUrl($"/pedido-exitoso?order={order}")
         .WithCancelUrl($"/pedido-cancelado?order={order}")

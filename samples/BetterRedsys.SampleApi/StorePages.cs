@@ -246,7 +246,7 @@ public static class StorePages
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="customerPhone">Teléfono Móvil (Bizum)</label>
+                                <label for="customerPhone">Teléfono Móvil</label>
                                 <input id="customerPhone" type="tel" name="customerPhone" value="+34 612 345 678" required />
                             </div>
                             <div class="form-group">

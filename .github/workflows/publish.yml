@@ -30,22 +30,35 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Resolve package version
+        id: version
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          # Priority: manual override > release tag (v1.2.3 -> 1.2.3) > Directory.Build.props
+          VERSION="$INPUT_VERSION"
+          if [ -z "$VERSION" ] && [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          if [ -n "$VERSION" ]; then
+            echo "msbuild_args=-p:Version=$VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "msbuild_args=" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Resolved version: ${VERSION:-from Directory.Build.props}"
+
       - name: Restore dependencies
         run: dotnet restore BetterRedsys.slnx
 
       - name: Build solution
-        run: dotnet build BetterRedsys.slnx -c Release --no-restore
+        run: dotnet build BetterRedsys.slnx -c Release --no-restore ${{ steps.version.outputs.msbuild_args }}
 
       - name: Run tests
         run: dotnet test BetterRedsys.slnx -c Release --no-build --verbosity normal
 
-      - name: Pack NuGet packages (default version)
-        if: "${{ github.event.inputs.version == '' }}"
-        run: dotnet pack BetterRedsys.slnx -c Release --no-build -o ./nupkgs
-
-      - name: Pack NuGet packages (version override)
-        if: "${{ github.event.inputs.version != '' }}"
-        run: dotnet pack BetterRedsys.slnx -c Release --no-build /p:Version=${{ github.event.inputs.version }} -o ./nupkgs
+      - name: Pack NuGet packages
+        run: dotnet pack BetterRedsys.slnx -c Release --no-build -o ./nupkgs ${{ steps.version.outputs.msbuild_args }}
 
       - name: NuGet Login (Trusted Publishing via OIDC)
         id: login

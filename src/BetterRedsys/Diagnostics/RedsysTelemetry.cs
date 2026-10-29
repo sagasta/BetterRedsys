@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using System.Reflection;
 
 namespace BetterRedsys.Diagnostics;
 
@@ -16,9 +17,9 @@ public static class RedsysTelemetry
     public const string Name = "BetterRedsys";
 
     /// <summary>
-    /// Current telemetry version ("1.0.0").
+    /// Telemetry version, taken from the package version so it never drifts from the released assembly.
     /// </summary>
-    public const string Version = "1.0.0";
+    public static readonly string Version = GetPackageVersion();
 
     /// <summary>
     /// ActivitySource for distributed tracing and span instrumentation.
@@ -61,4 +62,19 @@ public static class RedsysTelemetry
         name: "redsys.s2s.duration",
         unit: "ms",
         description: "Duration of server-to-server REST operations against Redsys gateway");
+
+    private static string GetPackageVersion()
+    {
+        var informational = typeof(RedsysTelemetry).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+        if (string.IsNullOrWhiteSpace(informational))
+        {
+            return typeof(RedsysTelemetry).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+        }
+
+        // Strip SourceLink build metadata ("2.0.0+abc123")
+        var plusIndex = informational.IndexOf('+');
+        return plusIndex >= 0 ? informational[..plusIndex] : informational;
+    }
 }
