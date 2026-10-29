@@ -94,7 +94,12 @@ public sealed class RedsysCryptoService : IRedsysCryptoService
     }
 
     /// <inheritdoc />
-    public string NormalizeBase64(string base64)
+    public string NormalizeBase64(string base64) => Normalize(base64);
+
+    /// <summary>
+    /// Static implementation of <see cref="NormalizeBase64"/>, shared with configuration validation.
+    /// </summary>
+    internal static string Normalize(string base64)
     {
         if (string.IsNullOrWhiteSpace(base64))
         {

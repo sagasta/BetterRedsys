@@ -153,6 +153,6 @@ public static class RedsysServiceCollectionExtensions
         services.TryAddSingleton<IValidateOptions<RedsysOptions>, RedsysOptionsValidator>();
         services.AddHttpClient("BetterRedsys");
         services.TryAddSingleton<IRedsysCryptoService, RedsysCryptoService>();
-        services.TryAddScoped<IRedsysClient, RedsysClient>();
+        services.TryAddSingleton<IRedsysClient, RedsysClient>();
     }
 }

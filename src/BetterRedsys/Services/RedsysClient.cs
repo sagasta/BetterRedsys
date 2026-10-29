@@ -20,6 +20,9 @@ public sealed class RedsysClient(
     IHttpClientFactory? httpClientFactory = null,
     ILogger<RedsysClient>? logger = null) : IRedsysClient
 {
+    // Fallback for manual construction without IHttpClientFactory; shared to avoid socket exhaustion from per-request clients
+    private static readonly HttpClient SharedHttpClient = new();
+
     private readonly RedsysOptions _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
     private readonly IRedsysCryptoService _cryptoService = cryptoService ?? throw new ArgumentNullException(nameof(cryptoService));
 
@@ -100,6 +103,20 @@ public sealed class RedsysClient(
                     new KeyValuePair<string, object?>("is_bizum", false));
 
                 logger?.LogWarning("BetterRedsys: Potential tampering detected. Cryptographic signature mismatch for order {Order}.", dto.Order);
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.MerchantCode) && !IsSameMerchantCode(dto.MerchantCode, _options.Fuc))
+            {
+                errorMessage = "The merchant code (Ds_MerchantCode) does not match the configured FUC.";
+                activity?.SetTag("redsys.is_valid", false);
+                activity?.SetTag("redsys.order", dto.Order);
+
+                RedsysTelemetry.WebhooksReceivedCounter.Add(1,
+                    new KeyValuePair<string, object?>("status", "merchant_mismatch"),
+                    new KeyValuePair<string, object?>("is_bizum", false));
+
+                logger?.LogWarning("BetterRedsys: Notification for order {Order} belongs to merchant {MerchantCode}, not the configured FUC.", dto.Order, dto.MerchantCode);
                 return false;
             }
 
@@ -225,6 +242,15 @@ public sealed class RedsysClient(
             cancellationToken: cancellationToken);
     }
 
+    /// <summary>
+    /// Compares FUC codes ignoring surrounding whitespace and leading zeros, which Redsys may add or strip.
+    /// </summary>
+    private static bool IsSameMerchantCode(string received, string configured) =>
+        string.Equals(
+            received.Trim().TrimStart('0'),
+            configured.Trim().TrimStart('0'),
+            StringComparison.OrdinalIgnoreCase);
+
     private async Task<RedsysNotification> SendRestRequestAsync(
         string order,
         RedsysAmount amount,
@@ -289,12 +315,20 @@ public sealed class RedsysClient(
             var requestBytes = JsonSerializer.SerializeToUtf8Bytes(requestDto, RedsysJsonContext.Default.RedsysRestRequestDto);
 
             var restUrl = _options.GetRestGatewayUrl();
-            using var httpClient = httpClientFactory?.CreateClient("BetterRedsys") ?? new HttpClient();
+            var httpClient = httpClientFactory?.CreateClient("BetterRedsys") ?? SharedHttpClient;
             using var content = new ByteArrayContent(requestBytes);
             content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
             using var response = await httpClient.PostAsync(restUrl, content, cancellationToken);
             var responseBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    $"Redsys REST endpoint returned HTTP {(int)response.StatusCode} ({response.ReasonPhrase}).",
+                    inner: null,
+                    statusCode: response.StatusCode);
+            }
 
             var restResponse = JsonSerializer.Deserialize(responseBytes, RedsysJsonContext.Default.RedsysRestResponseDto);
 

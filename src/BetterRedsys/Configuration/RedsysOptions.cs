@@ -206,24 +206,10 @@ public sealed class RedsysOptions
     /// <exception cref="InvalidOperationException">Thrown if any mandatory parameter is missing or invalid.</exception>
     public void Validate()
     {
-        if (string.IsNullOrWhiteSpace(Fuc))
+        var failures = RedsysOptionsValidator.GetFailures(this);
+        if (failures.Count > 0)
         {
-            throw new InvalidOperationException("BetterRedsys: Merchant FUC code (Fuc) is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(Terminal))
-        {
-            throw new InvalidOperationException("BetterRedsys: Terminal number (Terminal) is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(SecretKey))
-        {
-            throw new InvalidOperationException("BetterRedsys: Secret Base64 key (SecretKey) is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(Currency))
-        {
-            throw new InvalidOperationException("BetterRedsys: Currency code (Currency) is required.");
+            throw new InvalidOperationException($"BetterRedsys: {string.Join(" ", failures)}");
         }
     }
 }

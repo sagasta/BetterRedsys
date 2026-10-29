@@ -19,6 +19,9 @@ namespace BetterRedsys.Simulator;
 /// </summary>
 public sealed class RedsysSimulatorMiddleware
 {
+    // Fallback for manual construction without IHttpClientFactory; shared to avoid socket exhaustion from per-request clients
+    private static readonly HttpClient SharedHttpClient = new();
+
     private readonly RequestDelegate _next;
     private readonly RedsysOptions _redsysOptions;
     private readonly RedsysSimulatorOptions _simulatorOptions;
@@ -312,7 +315,7 @@ public sealed class RedsysSimulatorMiddleware
             }
 
             // Dispatch HTTP POST to merchant webhook
-            using var httpClient = _httpClientFactory?.CreateClient("BetterRedsysSimulator") ?? new HttpClient();
+            var httpClient = _httpClientFactory?.CreateClient("BetterRedsysSimulator") ?? SharedHttpClient;
             var formContent = new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 [RedsysPaymentResponseData.FormFieldSignatureVersion] = "HMAC_SHA256_V1",

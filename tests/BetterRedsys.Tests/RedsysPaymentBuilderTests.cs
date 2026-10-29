@@ -1,3 +1,4 @@
+using System.Text;
 using BetterRedsys.Configuration;
 using BetterRedsys.Cryptography;
 using BetterRedsys.Models;
@@ -107,5 +108,60 @@ public class RedsysPaymentBuilderTests
         Assert.Contains(RedsysPaymentResponseData.FormFieldMerchantParameters, html);
         Assert.Contains(RedsysPaymentResponseData.FormFieldSignature, html);
         Assert.Contains("form.submit()", html);
+    }
+
+    [Fact]
+    public void WithDescription_Null_ThrowsArgumentNullException()
+    {
+        var builder = CreateClient().CreatePayment("2026102201", 10m);
+
+        Assert.Throws<ArgumentNullException>(() => builder.WithDescription(null!));
+        Assert.Throws<ArgumentNullException>(() => builder.WithTitular(null!));
+    }
+
+    [Fact]
+    public void WithTitular_Truncation_DoesNotSplitSurrogatePairs()
+    {
+        // 59 chars followed by an emoji (2 UTF-16 code units) straddling the 60 char limit
+        var titular = new string('a', 59) + "😀";
+
+        var data = CreateClient().CreatePayment("2026102201", 10m)
+            .WithTitular(titular)
+            .ToFormData();
+
+        var json = Encoding.UTF8.GetString(Convert.FromBase64String(data.MerchantParameters));
+        Assert.Contains($"\"DS_MERCHANT_TITULAR\":\"{new string('a', 59)}\"", json);
+    }
+
+    [Fact]
+    public void With3DsExemption_DoesNotMutateCallerEmv3Ds()
+    {
+        var emv3Ds = new RedsysEmv3Ds { Email = "user@example.com" };
+
+        CreateClient().CreatePayment("2026102201", 10m)
+            .WithEmv3Ds(emv3Ds)
+            .With3DsExemption()
+            .ToFormData();
+
+        Assert.Null(emv3Ds.ThreeDSRequestorChallengeInd);
+    }
+
+    [Fact]
+    public void ToAutoSubmitHtml_WithCspNonce_AddsNonceToInlineStyleAndScript()
+    {
+        var html = CreateClient().CreatePayment("2026102201", 10m)
+            .ToAutoSubmitHtml(cspNonce: "abc123");
+
+        Assert.Contains("<style nonce=\"abc123\">", html);
+        Assert.Contains("<script nonce=\"abc123\">", html);
+    }
+
+    [Fact]
+    public void ToAutoSubmitHtml_WithoutCspNonce_RendersPlainTags()
+    {
+        var html = CreateClient().CreatePayment("2026102201", 10m).ToAutoSubmitHtml();
+
+        Assert.Contains("<style>", html);
+        Assert.Contains("<script>", html);
     }
 }

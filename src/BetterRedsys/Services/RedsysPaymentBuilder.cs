@@ -95,12 +95,8 @@ public sealed class RedsysPaymentBuilder
     /// </summary>
     public RedsysPaymentBuilder WithDescription(string description)
     {
-        if (description.Length > 125)
-        {
-            description = description[..125];
-        }
-
-        _productDescription = description;
+        ArgumentNullException.ThrowIfNull(description);
+        _productDescription = Truncate(description, 125);
         return this;
     }
 
@@ -136,12 +132,8 @@ public sealed class RedsysPaymentBuilder
     /// </summary>
     public RedsysPaymentBuilder WithTitular(string titular)
     {
-        if (titular.Length > 60)
-        {
-            titular = titular[..60];
-        }
-
-        _titular = titular;
+        ArgumentNullException.ThrowIfNull(titular);
+        _titular = Truncate(titular, 60);
         return this;
     }
 
@@ -253,7 +245,7 @@ public sealed class RedsysPaymentBuilder
     public RedsysPaymentBuilder WithEmv3Ds(RedsysEmv3Ds emv3Ds)
     {
         ArgumentNullException.ThrowIfNull(emv3Ds);
-        _emv3Ds = emv3Ds;
+        _emv3Ds = emv3Ds.Clone();
         return this;
     }
 
@@ -351,7 +343,8 @@ public sealed class RedsysPaymentBuilder
     /// </summary>
     /// <param name="language">Explicit language for texts (defaults to the builder's consumer language, or Spanish).</param>
     /// <param name="submitButtonText">Optional override for the fallback submit button text.</param>
-    public string ToAutoSubmitHtml(RedsysLanguage? language = null, string? submitButtonText = null)
+    /// <param name="cspNonce">Optional Content-Security-Policy nonce applied to the inline style and script, for pages served under a strict CSP.</param>
+    public string ToAutoSubmitHtml(RedsysLanguage? language = null, string? submitButtonText = null, string? cspNonce = null)
     {
         var data = ToFormData();
 
@@ -373,6 +366,7 @@ public sealed class RedsysPaymentBuilder
         var escapedButtonText = WebUtility.HtmlEncode(buttonText);
         var displayAmount = WebUtility.HtmlEncode(data.Amount.ToDisplayString());
         var escapedOrder = WebUtility.HtmlEncode(data.Order);
+        var nonceAttribute = string.IsNullOrWhiteSpace(cspNonce) ? string.Empty : $" nonce=\"{WebUtility.HtmlEncode(cspNonce)}\"";
 
         var sb = new StringBuilder();
         sb.AppendLine("<!DOCTYPE html>");
@@ -381,7 +375,7 @@ public sealed class RedsysPaymentBuilder
         sb.AppendLine("    <meta charset=\"utf-8\" />");
         sb.AppendLine("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />");
         sb.AppendLine($"    <title>{pageTitle}</title>");
-        sb.AppendLine("    <style>");
+        sb.AppendLine($"    <style{nonceAttribute}>");
         sb.AppendLine("        :root { --primary: #0066cc; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --muted: #94a3b8; }");
         sb.AppendLine("        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }");
         sb.AppendLine("        .card { background: var(--card); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 40px; max-width: 440px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); backdrop-filter: blur(8px); }");
@@ -413,7 +407,7 @@ public sealed class RedsysPaymentBuilder
         sb.AppendLine($"            <noscript><button type=\"submit\">{escapedButtonText}</button></noscript>");
         sb.AppendLine("        </form>");
         sb.AppendLine("    </div>");
-        sb.AppendLine("    <script>");
+        sb.AppendLine($"    <script{nonceAttribute}>");
         sb.AppendLine("        (function() {");
         sb.AppendLine("            var form = document.getElementById('redsys-form');");
         sb.AppendLine("            if (form) { form.submit(); }");
@@ -430,6 +424,20 @@ public sealed class RedsysPaymentBuilder
     /// </summary>
     /// <param name="submitButtonText">Visible text in case JavaScript is disabled in the browser.</param>
     public string ToAutoSubmitHtml(string submitButtonText) => ToAutoSubmitHtml(null, submitButtonText);
+
+    /// <summary>
+    /// Truncates to a maximum UTF-16 length without splitting a surrogate pair (e.g. an emoji) in half.
+    /// </summary>
+    private static string Truncate(string value, int maxLength)
+    {
+        if (value.Length <= maxLength)
+        {
+            return value;
+        }
+
+        var length = char.IsHighSurrogate(value[maxLength - 1]) ? maxLength - 1 : maxLength;
+        return value[..length];
+    }
 
     /// <summary>
     /// Validates that the order identifier matches strict Redsys rules (4-12 alphanumeric characters, first 4 numeric).

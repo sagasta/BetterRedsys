@@ -152,4 +152,41 @@ public class RedsysNotificationTests
         Assert.Equal(10, notification.TransactionDateTime.Value.Hour);
         Assert.Equal(30, notification.TransactionDateTime.Value.Minute);
     }
+
+    [Theory]
+    [InlineData("123456789")]
+    [InlineData("999008882")]
+    public void TryDecodeNotification_ForeignMerchantCode_IsRejected(string merchantCode)
+    {
+        var (parameters, signature) = SignNotification(merchantCode);
+
+        var ok = CreateClient().TryDecodeNotification(parameters, signature, out var notification, out var error);
+
+        Assert.False(ok);
+        Assert.Null(notification);
+        Assert.Contains("Ds_MerchantCode", error);
+    }
+
+    [Theory]
+    [InlineData("999008881")]
+    [InlineData("0999008881")]
+    [InlineData(" 999008881 ")]
+    public void TryDecodeNotification_MatchingMerchantCode_IsAccepted(string merchantCode)
+    {
+        var (parameters, signature) = SignNotification(merchantCode);
+
+        var ok = CreateClient().TryDecodeNotification(parameters, signature, out var notification, out var error);
+
+        Assert.True(ok, error);
+        Assert.NotNull(notification);
+    }
+
+    private (string Parameters, string Signature) SignNotification(string merchantCode)
+    {
+        const string order = "2026102201";
+        var json = $$"""{"Ds_Order":"{{order}}","Ds_Amount":"1000","Ds_MerchantCode":"{{merchantCode}}","Ds_Response":"0000"}""";
+        var parameters = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+        var signature = _crypto.ComputeSignature(parameters, _crypto.DiversifyKey(_options.SecretKey, order));
+        return (parameters, signature);
+    }
 }

@@ -108,6 +108,11 @@ public sealed class RedsysEmv3Ds
     [JsonPropertyName("suspiciousAccActivity")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SuspiciousActivityIndicator { get; set; }
+
+    /// <summary>
+    /// Shallow copy so the payment builder can adjust indicators without mutating the caller's instance.
+    /// </summary>
+    internal RedsysEmv3Ds Clone() => (RedsysEmv3Ds)MemberwiseClone();
 }
 
 /// <summary>

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using BetterRedsys.Configuration;
 using BetterRedsys.Cryptography;
@@ -277,5 +278,30 @@ public class RedsysRestAndCofTests
     private sealed class SimpleHttpClientFactory(HttpClient client) : IHttpClientFactory
     {
         public HttpClient CreateClient(string name) => client;
+    }
+
+    [Fact]
+    public async Task ExecuteRefundAsync_HttpErrorStatus_ThrowsHttpRequestExceptionWithStatus()
+    {
+        var options = new RedsysOptions
+        {
+            Fuc = "999008881",
+            Terminal = "1",
+            SecretKey = SecretKey,
+            CustomRestGatewayUrl = "https://redsys.invalid/rest"
+        };
+        using var httpClient = new HttpClient(new StatusHttpMessageHandler(HttpStatusCode.BadGateway));
+        var client = new RedsysClient(Options.Create(options), new RedsysCryptoService(), new SimpleHttpClientFactory(httpClient));
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => client.ExecuteRefundAsync("2026102201", 10m));
+
+        Assert.Equal(HttpStatusCode.BadGateway, ex.StatusCode);
+        Assert.Contains("502", ex.Message);
+    }
+
+    private sealed class StatusHttpMessageHandler(HttpStatusCode statusCode) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(statusCode) { Content = new StringContent("<html>Bad Gateway</html>") });
     }
 }

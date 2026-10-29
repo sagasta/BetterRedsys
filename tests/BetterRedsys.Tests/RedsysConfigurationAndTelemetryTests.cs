@@ -219,4 +219,48 @@ public class RedsysConfigurationAndTelemetryTests
         Assert.Equal("0000", capturedActivity.GetTagItem("redsys.response_code"));
         Assert.Equal(true, capturedActivity.GetTagItem("redsys.is_success"));
     }
+
+    [Theory]
+    [InlineData("not-base64-!!")]
+    [InlineData("c2hvcnQ=")] // valid Base64, but only 5 bytes
+    public void AddBetterRedsys_InvalidSecretKey_FailsValidationOnStart(string secretKey)
+    {
+        var services = new ServiceCollection();
+        services.AddBetterRedsys(options =>
+        {
+            options.Fuc = "999008881";
+            options.Terminal = "1";
+            options.SecretKey = secretKey;
+        });
+
+        var sp = services.BuildServiceProvider();
+
+        var ex = Assert.Throws<OptionsValidationException>(() =>
+        {
+            _ = sp.GetRequiredService<IOptions<RedsysOptions>>().Value;
+        });
+        Assert.Contains("SecretKey", ex.Message);
+    }
+
+    [Fact]
+    public void RedsysOptionsValidate_InvalidSecretKey_ThrowsInvalidOperationException()
+    {
+        var options = new RedsysOptions { Fuc = "999008881", Terminal = "1", SecretKey = "c2hvcnQ=" };
+
+        var ex = Assert.Throws<InvalidOperationException>(options.Validate);
+        Assert.Contains("SecretKey", ex.Message);
+    }
+
+    [Fact]
+    public void AddBetterRedsys_RegistersClientAsSingleton_ResolvableFromRootProvider()
+    {
+        var services = new ServiceCollection();
+        services.AddBetterRedsys(options => options.UseTest("999008881", "1", SecretKey));
+
+        using var sp = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
+
+        var first = sp.GetRequiredService<IRedsysClient>();
+        var second = sp.GetRequiredService<IRedsysClient>();
+        Assert.Same(first, second);
+    }
 }
