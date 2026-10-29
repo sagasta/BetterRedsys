@@ -28,12 +28,19 @@ public static class RedsysSimulatorExtensions
             opt.Path = options.Path;
             opt.RestPath = options.RestPath;
             opt.AutoConfigureGatewayUrls = options.AutoConfigureGatewayUrls;
+            opt.AllowNonDevelopmentEnvironments = options.AllowNonDevelopmentEnvironments;
         });
 
         if (options.AutoConfigureGatewayUrls)
         {
             services.PostConfigure<RedsysOptions>(redsysOpt =>
             {
+                // Never redirect real production traffic to the in-memory simulator, which is inactive in production
+                if (redsysOpt.IsProduction)
+                {
+                    return;
+                }
+
                 redsysOpt.CustomGatewayUrl = options.Path;
                 redsysOpt.CustomRestGatewayUrl = options.RestPath;
             });

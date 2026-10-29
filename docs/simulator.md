@@ -18,7 +18,10 @@ dotnet add package BetterRedsys.Simulator
 
 ## 2. Configuración en `Program.cs`
 
-El simulador se activa condicionalmente solo en entorno de desarrollo (`IsDevelopment()`):
+El simulador se activa condicionalmente solo en entorno de desarrollo (`IsDevelopment()`).
+
+> [!WARNING]
+> El simulador firma notificaciones arbitrarias con tu `SecretKey`, así que cualquiera que pueda alcanzarlo puede falsificar webhooks contra tu aplicación. Por eso el middleware solo intercepta peticiones cuando el entorno es `Development` y `IsProduction` es `false`. Si necesitas usarlo en otro entorno (por ejemplo, un *Staging* que no sea accesible públicamente), actívalo explícitamente con `options.AllowNonDevelopmentEnvironments = true`. En producción nunca se activa ni redirige las URLs del gateway.
 
 ```csharp
 using BetterRedsys.Configuration;

@@ -76,4 +76,17 @@ public class RedsysOrderNumberAndTestCardsTests
         Assert.Equal("1", RedsysTestCredentials.Terminal);
         Assert.Equal("sq7HjrUOBfKmC576ILgskD5srURiUz6U", RedsysTestCredentials.SecretKey);
     }
+
+    [Fact]
+    public void Generate_ProducesNoCollisionsAtHighVolume()
+    {
+        var orders = new HashSet<string>();
+
+        for (var i = 0; i < 100_000; i++)
+        {
+            var order = RedsysOrderNumber.Generate();
+            Assert.True(RedsysOrderNumber.IsValid(order, out var error), error);
+            Assert.True(orders.Add(order), $"Duplicate order generated: {order}");
+        }
+    }
 }

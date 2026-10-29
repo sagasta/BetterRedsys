@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -6,6 +7,7 @@ using BetterRedsys.Configuration;
 using BetterRedsys.Cryptography;
 using BetterRedsys.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using BetterRedsys.Simulator.UI;
@@ -22,6 +24,7 @@ public sealed class RedsysSimulatorMiddleware
     private readonly RedsysSimulatorOptions _simulatorOptions;
     private readonly IRedsysCryptoService _cryptoService;
     private readonly IHttpClientFactory? _httpClientFactory;
+    private readonly IHostEnvironment? _hostEnvironment;
     private readonly ILogger<RedsysSimulatorMiddleware> _logger;
 
     /// <summary>
@@ -33,7 +36,8 @@ public sealed class RedsysSimulatorMiddleware
         IOptions<RedsysSimulatorOptions> simulatorOptions,
         IRedsysCryptoService cryptoService,
         ILogger<RedsysSimulatorMiddleware> logger,
-        IHttpClientFactory? httpClientFactory = null)
+        IHttpClientFactory? httpClientFactory = null,
+        IHostEnvironment? hostEnvironment = null)
     {
         _next = next;
         _redsysOptions = redsysOptions.Value;
@@ -41,7 +45,17 @@ public sealed class RedsysSimulatorMiddleware
         _cryptoService = cryptoService;
         _logger = logger;
         _httpClientFactory = httpClientFactory;
+        _hostEnvironment = hostEnvironment;
     }
+
+    /// <summary>
+    /// The simulator signs forged notifications with the real secret key, so it only runs in Development unless explicitly allowed.
+    /// When no <see cref="IHostEnvironment"/> is available (manual construction), only the <see cref="RedsysOptions.IsProduction"/> guard applies.
+    /// </summary>
+    private bool IsAllowedEnvironment() =>
+        _simulatorOptions.AllowNonDevelopmentEnvironments ||
+        _hostEnvironment is null ||
+        _hostEnvironment.IsDevelopment();
 
     /// <summary>
     /// Processes incoming HTTP requests, intercepting calls directed to the Redsys simulator.
@@ -49,7 +63,7 @@ public sealed class RedsysSimulatorMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         // Production safety guard: do not intercept requests if running in Production
-        if (_redsysOptions.IsProduction)
+        if (_redsysOptions.IsProduction || !IsAllowedEnvironment())
         {
             await _next(context);
             return;
@@ -134,8 +148,8 @@ public sealed class RedsysSimulatorMiddleware
 
             var notificationDto = new SimulatorRestNotificationDto
             {
-                Date = Uri.EscapeDataString(DateTime.Now.ToString("dd/MM/yyyy")),
-                Hour = Uri.EscapeDataString(DateTime.Now.ToString("HH:mm")),
+                Date = Uri.EscapeDataString(RedsysTimeZone.Now().ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)),
+                Hour = Uri.EscapeDataString(RedsysTimeZone.Now().ToString("HH:mm", CultureInfo.InvariantCulture)),
                 Amount = merchantDto.Amount,
                 Currency = merchantDto.Currency ?? _redsysOptions.Currency,
                 Order = merchantDto.Order,
@@ -227,8 +241,9 @@ public sealed class RedsysSimulatorMiddleware
             }
 
             // Construct simulated notification parameters
-            var now = DateTime.Now.ToString("dd/MM/yyyy");
-            var hour = DateTime.Now.ToString("HH:mm");
+            var madridNow = RedsysTimeZone.Now();
+            var now = madridNow.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+            var hour = madridNow.ToString("HH:mm", CultureInfo.InvariantCulture);
             var isSuccess = RedsysResponseCatalog.IsSuccess(simRequest.ResponseCode);
 
             var notificationDto = new SimulatorRestNotificationDto

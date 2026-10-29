@@ -88,9 +88,11 @@ public readonly record struct RedsysAmount : IComparable<RedsysAmount>, ICompara
     public static implicit operator decimal(RedsysAmount amount) => amount.Euros;
 
     /// <summary>
-    /// Implicitly converts a <see cref="RedsysAmount"/> to <see cref="long"/> in cents.
+    /// Explicitly converts a <see cref="RedsysAmount"/> to <see cref="long"/> in cents.
+    /// Explicit on purpose: an implicit cents conversion combined with the implicit euros conversion from
+    /// <see cref="decimal"/> made expressions such as <c>amount * 2</c> silently multiply the amount by 100.
     /// </summary>
-    public static implicit operator long(RedsysAmount amount) => amount.Cents;
+    public static explicit operator long(RedsysAmount amount) => amount.Cents;
 
     /// <summary>
     /// Returns the exact string required by Redsys (integer digits in cents without decimal separators).

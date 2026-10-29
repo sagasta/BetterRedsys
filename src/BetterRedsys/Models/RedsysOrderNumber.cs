@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Security.Cryptography;
 
 namespace BetterRedsys.Models;
@@ -10,17 +11,20 @@ namespace BetterRedsys.Models;
 /// </summary>
 public static class RedsysOrderNumber
 {
+    private const string RandomSuffixAlphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
     /// <summary>
     /// Generates a valid, cryptographically randomized 12-character Redsys order identifier.
-    /// Format: Current date in 6 digits (yyMMdd) followed by 6 random numeric digits.
+    /// Format: Current UTC year and month in 4 digits (yyMM) followed by 8 random uppercase alphanumeric characters,
+    /// giving 36^8 (~2.8 trillion) combinations per month so collisions are negligible at any realistic volume.
     /// Guarantees that the first 4 characters are numeric and the length is exactly 12 characters.
     /// </summary>
     /// <returns>A valid 12-character Redsys order string.</returns>
     public static string Generate()
     {
-        var datePrefix = DateTime.UtcNow.ToString("yyMMdd");
-        var randomDigits = RandomNumberGenerator.GetInt32(100_000, 1_000_000).ToString();
-        return $"{datePrefix}{randomDigits}";
+        var datePrefix = DateTime.UtcNow.ToString("yyMM", CultureInfo.InvariantCulture);
+        var randomSuffix = RandomNumberGenerator.GetString(RandomSuffixAlphabet, 8);
+        return $"{datePrefix}{randomSuffix}";
     }
 
     /// <summary>

@@ -7,6 +7,8 @@ using BetterRedsys.Services;
 using BetterRedsys.Simulator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace BetterRedsys.Tests;
@@ -244,5 +246,82 @@ public class RedsysSimulatorTests
         Assert.DoesNotContain("<script>alert('xss')</script>", html);
         // Must contain HTML-encoded version
         Assert.Contains("&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;", html);
+    }
+
+    [Fact]
+    public void AddBetterRedsysSimulator_DoesNotOverrideGatewayUrls_InProduction()
+    {
+        var services = new ServiceCollection();
+        services.AddBetterRedsys(options =>
+        {
+            options.UseProduction("999008881", "1", "sq7HjrUOBfKmC576ILgskD5srURiUz6U");
+        });
+        services.AddBetterRedsysSimulator();
+
+        var sp = services.BuildServiceProvider();
+        var redsysOpts = sp.GetRequiredService<IOptions<RedsysOptions>>().Value;
+
+        Assert.Null(redsysOpts.CustomGatewayUrl);
+        Assert.Null(redsysOpts.CustomRestGatewayUrl);
+        Assert.Equal(RedsysEndpoints.Production, redsysOpts.GetPaymentGatewayUrl());
+        Assert.Equal(RedsysEndpoints.RestProduction, redsysOpts.GetRestGatewayUrl());
+    }
+
+    [Theory]
+    [InlineData("Staging", false, true)]
+    [InlineData("Production", false, true)]
+    [InlineData("Staging", true, false)]
+    [InlineData("Development", false, false)]
+    public async Task Simulator_OnlyInterceptsInDevelopmentUnlessExplicitlyAllowed(
+        string environmentName,
+        bool allowNonDevelopment,
+        bool expectPassThrough)
+    {
+        var redsysOptions = new RedsysOptions
+        {
+            Fuc = "999008881",
+            Terminal = "1",
+            SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
+            IsProduction = false
+        };
+        var simulatorOptions = new RedsysSimulatorOptions { AllowNonDevelopmentEnvironments = allowNonDevelopment };
+
+        var nextCalled = false;
+        var middleware = new RedsysSimulatorMiddleware(
+            next: ctx =>
+            {
+                nextCalled = true;
+                return Task.CompletedTask;
+            },
+            redsysOptions: Options.Create(redsysOptions),
+            simulatorOptions: Options.Create(simulatorOptions),
+            cryptoService: new RedsysCryptoService(),
+            logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<RedsysSimulatorMiddleware>.Instance,
+            hostEnvironment: new TestHostEnvironment(environmentName));
+
+        var context = new DefaultHttpContext
+        {
+            Request =
+            {
+                Path = $"{simulatorOptions.Path.TrimEnd('/')}/dispatch-webhook",
+                Method = "POST",
+                Host = new HostString("localhost", 5000),
+                Scheme = "http",
+                Body = new MemoryStream(Encoding.UTF8.GetBytes("{}"))
+            },
+            Response = { Body = new MemoryStream() }
+        };
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(expectPassThrough, nextCalled);
+    }
+
+    private sealed class TestHostEnvironment(string environmentName) : IHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = environmentName;
+        public string ApplicationName { get; set; } = "BetterRedsys.Tests";
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
     }
 }

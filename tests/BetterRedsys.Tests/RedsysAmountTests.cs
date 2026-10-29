@@ -41,7 +41,7 @@ public class RedsysAmountTests
         Assert.Equal(10000, fromInt.Cents);
 
         decimal backToDecimal = fromDecimal;
-        long backToLong = fromInt;
+        var backToLong = (long)fromInt;
 
         Assert.Equal(49.99m, backToDecimal);
         Assert.Equal(10000L, backToLong);
@@ -71,5 +71,24 @@ public class RedsysAmountTests
         Assert.Throws<ArgumentOutOfRangeException>(() => RedsysAmount.FromEuros(-1.00m));
         Assert.Throws<ArgumentOutOfRangeException>(() => RedsysAmount.FromCents(-100));
         Assert.Throws<ArgumentOutOfRangeException>(() => (RedsysAmount)(-5));
+    }
+
+    [Fact]
+    public void Multiply_ByScalar_KeepsEurosSemantics()
+    {
+        RedsysAmount amount = 15.50m;
+
+        RedsysAmount doubled = amount * 2;
+
+        Assert.Equal(3100, doubled.Cents);
+        Assert.Equal(31.00m, doubled.Euros);
+    }
+
+    [Fact]
+    public void ExplicitLongConversion_ReturnsCents()
+    {
+        var amount = RedsysAmount.FromEuros(15.50m);
+
+        Assert.Equal(1550L, (long)amount);
     }
 }

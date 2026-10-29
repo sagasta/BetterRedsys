@@ -77,6 +77,7 @@ public class RedsysRestAndCofTests
             .ConfigureWebHost(webHost =>
             {
                 webHost.UseTestServer();
+                webHost.UseEnvironment(Environments.Development);
                 webHost.ConfigureServices(services =>
                 {
                     services.AddRouting();

@@ -137,4 +137,19 @@ public class RedsysNotificationTests
         Assert.Equal("454881******0004", notification.CardNumber);
         Assert.Equal("2812", notification.ExpiryDate);
     }
+
+    [Theory]
+    [InlineData("15%2F07%2F2026", "10%3A30", 2)] // Summer time (CEST)
+    [InlineData("15%2F01%2F2026", "10%3A30", 1)] // Winter time (CET)
+    public void Create_InterpretsTransactionDateTimeAsMadridTime(string date, string hour, int expectedOffsetHours)
+    {
+        var dto = new RedsysNotificationParametersDto { Order = "2026102201", Date = date, Hour = hour };
+
+        var notification = RedsysNotification.Create(dto, "params", "signature");
+
+        Assert.NotNull(notification.TransactionDateTime);
+        Assert.Equal(TimeSpan.FromHours(expectedOffsetHours), notification.TransactionDateTime.Value.Offset);
+        Assert.Equal(10, notification.TransactionDateTime.Value.Hour);
+        Assert.Equal(30, notification.TransactionDateTime.Value.Minute);
+    }
 }

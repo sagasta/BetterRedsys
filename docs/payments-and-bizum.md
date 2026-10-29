@@ -159,8 +159,8 @@ Para evitar el error bancario `SIS0014: Error en el formato de Ds_Merchant_Order
 ```csharp
 using BetterRedsys.Models;
 
-// 1. Generar automáticamente un número de pedido válido de 12 caracteres (yyMMdd + 6 dígitos aleatorios)
-string orderId = RedsysOrderNumber.Generate(); // Ejemplo: "261022481920"
+// 1. Generar automáticamente un número de pedido válido de 12 caracteres (yyMM + 8 alfanuméricos aleatorios)
+string orderId = RedsysOrderNumber.Generate(); // Ejemplo: "2610K7Q2M9XA"
 
 // 2. Validar un número de pedido antes de procesarlo
 if (RedsysOrderNumber.IsValid(orderId, out string? error))

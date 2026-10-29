@@ -169,14 +169,14 @@ public sealed class RedsysNotification
             cents = parsedCents;
         }
 
-        // Parse date and time
+        // Parse date and time (Redsys reports Spanish peninsular time, not the server's local time)
         DateTimeOffset? dateTime = null;
         if (!string.IsNullOrWhiteSpace(dto.Date) && !string.IsNullOrWhiteSpace(dto.Hour))
         {
             var dateStr = $"{Uri.UnescapeDataString(dto.Date)} {Uri.UnescapeDataString(dto.Hour)}";
-            if (DateTimeOffset.TryParseExact(dateStr, "dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsedDt))
+            if (DateTime.TryParseExact(dateStr, "dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDt))
             {
-                dateTime = parsedDt;
+                dateTime = RedsysTimeZone.FromRedsysLocalTime(parsedDt);
             }
         }
 

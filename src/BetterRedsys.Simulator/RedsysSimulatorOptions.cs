@@ -23,4 +23,12 @@ public sealed class RedsysSimulatorOptions
     /// Defaults to true.
     /// </summary>
     public bool AutoConfigureGatewayUrls { get; set; } = true;
+
+    /// <summary>
+    /// Allows the simulator to intercept requests when the host environment is not Development (e.g. Staging).
+    /// The simulator signs arbitrary notifications with the configured secret key, so anyone able to reach it can
+    /// forge webhooks against your application. Only enable this on environments that are not publicly reachable.
+    /// Defaults to false. The simulator never runs when <see cref="BetterRedsys.Configuration.RedsysOptions.IsProduction"/> is true.
+    /// </summary>
+    public bool AllowNonDevelopmentEnvironments { get; set; }
 }
