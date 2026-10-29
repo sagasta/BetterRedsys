@@ -3,6 +3,7 @@ using BetterRedsys.Configuration;
 using BetterRedsys.Cryptography;
 using BetterRedsys.Models;
 using BetterRedsys.Services;
+using BetterRedsys.Testing;
 using Microsoft.Extensions.Options;
 
 namespace BetterRedsys.Tests;
@@ -13,7 +14,7 @@ public class RedsysMultilanguageTests
     {
         Fuc = "999008881",
         Terminal = "1",
-        SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
+        SecretKey = RedsysTestCredentials.SecretKey,
         Currency = "978"
     };
 

@@ -71,10 +71,6 @@ public class RedsysOrderNumberAndTestCardsTests
         Assert.Equal("1234", RedsysTestCards.SmsCode);
         Assert.Equal("123", RedsysTestCards.DefaultCvv);
         Assert.Equal("12/28", RedsysTestCards.DefaultExpiry);
-
-        Assert.Equal("999008881", RedsysTestCredentials.Fuc);
-        Assert.Equal("1", RedsysTestCredentials.Terminal);
-        Assert.Equal("sq7HjrUOBfKmC576ILgskD5srURiUz6U", RedsysTestCredentials.SecretKey);
     }
 
     [Fact]
@@ -88,5 +84,15 @@ public class RedsysOrderNumberAndTestCardsTests
             Assert.True(RedsysOrderNumber.IsValid(order, out var error), error);
             Assert.True(orders.Add(order), $"Duplicate order generated: {order}");
         }
+    }
+
+    [Fact]
+    public void TestCredentials_MatchPublicRedsysTestTerminal()
+    {
+        // Verified against https://sis-t.redsys.es:25443/sis/realizarPago on 2026-10-29:
+        // this key reaches the payment page, while the key shipped up to 2.0.0 returned SIS0042.
+        Assert.Equal("999008881", RedsysTestCredentials.Fuc);
+        Assert.Equal("1", RedsysTestCredentials.Terminal);
+        Assert.Equal("sq7HjrUOBfKmC576ILgskD5srU870gJ7", RedsysTestCredentials.SecretKey);
     }
 }

@@ -3,6 +3,7 @@ using BetterRedsys.Configuration;
 using BetterRedsys.Cryptography;
 using BetterRedsys.Models;
 using BetterRedsys.Services;
+using BetterRedsys.Testing;
 using Microsoft.Extensions.Options;
 
 namespace BetterRedsys.Tests;
@@ -13,7 +14,7 @@ public class RedsysPaymentBuilderTests
     {
         Fuc = "999008881",
         Terminal = "1",
-        SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
+        SecretKey = RedsysTestCredentials.SecretKey,
         Currency = "978",
         MerchantUrl = "https://example.com/webhook",
         UrlOk = "https://example.com/ok",
@@ -99,7 +100,7 @@ public class RedsysPaymentBuilderTests
     {
         var client = CreateClient();
         var html = client.CreatePayment("99990001", 10.00m)
-            .WithCardOrBizum()
+            .WithAllPaymentMethods()
             .ToAutoSubmitHtml();
 
         Assert.Contains("<!DOCTYPE html>", html);
@@ -181,6 +182,7 @@ public class RedsysPaymentBuilderTests
     }
 
     [Fact]
+    [Obsolete("Covers the obsolete WithCardOrBizum() for backward compatibility.")]
     public void WithCardOrBizum_OmitsPayMethods_SoGatewayShowsAllEnabledMethods()
     {
         var json = GetMerchantParametersJson(b => b.WithBizum().WithCardOrBizum());

@@ -4,6 +4,7 @@ using BetterRedsys.Models;
 using BetterRedsys.SampleApi;
 using BetterRedsys.Services;
 using BetterRedsys.Simulator;
+using BetterRedsys.Testing;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,9 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 var redsysBuilder = builder.Services.AddBetterRedsys(options =>
 {
     options.UseTest(
-        fuc: builder.Configuration["Redsys:Fuc"] ?? "999008881",
-        terminal: builder.Configuration["Redsys:Terminal"] ?? "1",
-        secretKey: builder.Configuration["Redsys:SecretKey"] ?? "sq7HjrUOBfKmC576ILgskD5srURiUz6U")
+        fuc: builder.Configuration["Redsys:Fuc"] ?? RedsysTestCredentials.Fuc,
+        terminal: builder.Configuration["Redsys:Terminal"] ?? RedsysTestCredentials.Terminal,
+        secretKey: builder.Configuration["Redsys:SecretKey"] ?? RedsysTestCredentials.SecretKey)
     .WithEuros()
     .WithWebhooks(
         notificationUrl: "/api/pagos/webhook",
@@ -45,7 +46,7 @@ app.MapPost("/api/checkout/crear-pago", (IRedsysClient redsysClient, CheckoutReq
     var paymentData = redsysClient
         .CreatePayment(request.Order, request.Amount)
         .WithDescription(request.Description ?? "Compra en Tienda Online")
-        .WithCardOrBizum() // Muestra todos los métodos activos en el terminal (Tarjeta y Bizum)
+        .WithAllPaymentMethods() // Muestra todos los métodos activos en el terminal
         .WithSuccessUrl($"/pedido-exitoso?order={request.Order}")
         .WithCancelUrl($"/pedido-cancelado?order={request.Order}")
         .ToFormData();
@@ -137,7 +138,7 @@ app.MapPost("/checkout/pagar", async (HttpRequest req, IRedsysClient redsysClien
 
     var html = redsysClient
         .CreatePayment(order, 49.95m)
-        .WithCardOrBizum() // Muestra todos los métodos activos en el terminal (Tarjeta y Bizum)
+        .WithAllPaymentMethods() // Muestra todos los métodos activos en el terminal
         .WithDescription("Auriculares Inalámbricos Pro ANC")
         .WithSuccessUrl($"/pedido-exitoso?order={order}")
         .WithCancelUrl($"/pedido-cancelado?order={order}")
@@ -151,7 +152,7 @@ app.MapGet("/checkout/pagar/{order}", (string order, IRedsysClient redsysClient)
 {
     var html = redsysClient
         .CreatePayment(order, 49.95m)
-        .WithCardOrBizum()
+        .WithAllPaymentMethods()
         .WithDescription("Compra Directa")
         .WithSuccessUrl($"/pedido-exitoso?order={order}")
         .WithCancelUrl($"/pedido-cancelado?order={order}")

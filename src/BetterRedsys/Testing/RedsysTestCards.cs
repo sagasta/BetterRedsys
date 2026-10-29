@@ -47,7 +47,8 @@ public static class RedsysTestCards
 }
 
 /// <summary>
-/// Public test merchant credentials provided by Redsys for the official test sandbox environment.
+/// Public test merchant credentials provided by Redsys for the official test sandbox environment
+/// (https://sis-t.redsys.es:25443). Shared by every integrator: never use them in production.
 /// </summary>
 public static class RedsysTestCredentials
 {
@@ -64,5 +65,5 @@ public static class RedsysTestCredentials
     /// <summary>
     /// Official public test HMAC-SHA256 secret encryption key.
     /// </summary>
-    public const string SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U";
+    public const string SecretKey = "sq7HjrUOBfKmC576ILgskD5srU870gJ7";
 }

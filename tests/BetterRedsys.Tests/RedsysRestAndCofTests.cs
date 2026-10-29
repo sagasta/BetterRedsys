@@ -5,6 +5,7 @@ using BetterRedsys.Cryptography;
 using BetterRedsys.Models;
 using BetterRedsys.Services;
 using BetterRedsys.Simulator;
+using BetterRedsys.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
@@ -16,7 +17,7 @@ namespace BetterRedsys.Tests;
 
 public class RedsysRestAndCofTests
 {
-    private const string SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U";
+    private const string SecretKey = RedsysTestCredentials.SecretKey;
 
     [Theory]
     [InlineData(RedsysCofType.Recurring, "R")]

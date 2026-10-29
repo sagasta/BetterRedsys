@@ -27,7 +27,7 @@ En tu `appsettings.Development.json` (o mediante `options.UseTest`):
     "Environment": "Test",
     "Fuc": "999008881",
     "Terminal": "1",
-    "SecretKey": "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
+    "SecretKey": "sq7HjrUOBfKmC576ILgskD5srU870gJ7",
     "MerchantUrl": "https://tudominio.com/api/pagos/webhook",
     "UrlOk": "https://tudominio.com/pedido-exitoso",
     "UrlKo": "https://tudominio.com/pedido-cancelado"

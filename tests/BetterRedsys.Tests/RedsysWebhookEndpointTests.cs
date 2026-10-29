@@ -4,6 +4,7 @@ using BetterRedsys.Configuration;
 using BetterRedsys.Cryptography;
 using BetterRedsys.Endpoints;
 using BetterRedsys.Models;
+using BetterRedsys.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -15,7 +16,7 @@ namespace BetterRedsys.Tests;
 
 public class RedsysWebhookEndpointTests
 {
-    private const string SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U";
+    private const string SecretKey = RedsysTestCredentials.SecretKey;
 
     private async Task<IHost> BuildTestHostAsync(Action<RedsysNotification>? callback = null)
     {

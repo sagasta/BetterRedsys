@@ -89,11 +89,12 @@ public sealed class RedsysPaymentBuilder
     }
 
     /// <summary>
-    /// Allows the customer to choose between Credit/Debit Card or Bizum.
-    /// Redsys does not document a value combining both methods, so this omits DS_MERCHANT_PAYMETHODS
-    /// and the gateway shows every method enabled on the terminal (card and Bizum, when Bizum is active).
+    /// Omits DS_MERCHANT_PAYMETHODS so the gateway shows every method enabled on the terminal.
+    /// Redsys has no value that offers exactly card and Bizum: any value containing "z" goes straight to Bizum,
+    /// and whether Bizum appears in the method selector depends on the terminal configuration.
     /// Equivalent to <see cref="WithAllPaymentMethods"/>.
     /// </summary>
+    [Obsolete("Redsys cannot guarantee a card-or-Bizum selector. Use WithAllPaymentMethods(), or let the customer choose in your UI and call WithCard() or WithBizum().")]
     public RedsysPaymentBuilder WithCardOrBizum() => WithAllPaymentMethods();
 
     /// <summary>

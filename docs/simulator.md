@@ -36,7 +36,7 @@ var redsys = builder.Services.AddBetterRedsys(options =>
         options.UseTest(
             fuc: "999008881",
             terminal: "1",
-            secretKey: "sq7HjrUOBfKmC576ILgskD5srURiUz6U"
+            secretKey: "sq7HjrUOBfKmC576ILgskD5srU870gJ7"
         );
     }
     else
@@ -127,5 +127,5 @@ string tarjetaDenegada  = RedsysTestCards.IssuerDeclined;         // 45488100000
 // Credenciales oficiales de test
 string fucTest   = RedsysTestCredentials.Fuc;       // "999008881"
 string termTest  = RedsysTestCredentials.Terminal;  // "1"
-string claveTest = RedsysTestCredentials.SecretKey; // "sq7HjrUOBfKmC576ILgskD5srURiUz6U"
+string claveTest = RedsysTestCredentials.SecretKey; // "sq7HjrUOBfKmC576ILgskD5srU870gJ7"
 ```

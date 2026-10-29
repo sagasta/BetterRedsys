@@ -5,6 +5,7 @@ using BetterRedsys.Cryptography;
 using BetterRedsys.Models;
 using BetterRedsys.Services;
 using BetterRedsys.Simulator;
+using BetterRedsys.Testing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
@@ -22,7 +23,7 @@ public class RedsysSimulatorTests
         {
             Fuc = "999008881",
             Terminal = "1",
-            SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
+            SecretKey = RedsysTestCredentials.SecretKey,
             CustomGatewayUrl = "/redsys-simulator/pay"
         };
 
@@ -37,7 +38,7 @@ public class RedsysSimulatorTests
         {
             options.Fuc = "999008881";
             options.Terminal = "1";
-            options.SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U";
+            options.SecretKey = RedsysTestCredentials.SecretKey;
         });
         services.AddBetterRedsysSimulator();
 
@@ -57,7 +58,7 @@ public class RedsysSimulatorTests
         {
             Fuc = "999008881",
             Terminal = "1",
-            SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
+            SecretKey = RedsysTestCredentials.SecretKey,
             Currency = "978"
         };
         var crypto = new RedsysCryptoService();
@@ -106,7 +107,7 @@ public class RedsysSimulatorTests
         {
             Fuc = "999008881",
             Terminal = "1",
-            SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
+            SecretKey = RedsysTestCredentials.SecretKey,
             IsProduction = true // Production enabled
         };
         var simulatorOptions = new RedsysSimulatorOptions();
@@ -144,7 +145,7 @@ public class RedsysSimulatorTests
         {
             Fuc = "999008881",
             Terminal = "1",
-            SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
+            SecretKey = RedsysTestCredentials.SecretKey,
             IsProduction = false
         };
         var simulatorOptions = new RedsysSimulatorOptions();
@@ -195,7 +196,7 @@ public class RedsysSimulatorTests
         {
             Fuc = "999008881",
             Terminal = "1",
-            SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
+            SecretKey = RedsysTestCredentials.SecretKey,
             IsProduction = false
         };
         var simulatorOptions = new RedsysSimulatorOptions();
@@ -254,7 +255,7 @@ public class RedsysSimulatorTests
         var services = new ServiceCollection();
         services.AddBetterRedsys(options =>
         {
-            options.UseProduction("999008881", "1", "sq7HjrUOBfKmC576ILgskD5srURiUz6U");
+            options.UseProduction("999008881", "1", RedsysTestCredentials.SecretKey);
         });
         services.AddBetterRedsysSimulator();
 
@@ -281,7 +282,7 @@ public class RedsysSimulatorTests
         {
             Fuc = "999008881",
             Terminal = "1",
-            SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
+            SecretKey = RedsysTestCredentials.SecretKey,
             IsProduction = false
         };
         var simulatorOptions = new RedsysSimulatorOptions { AllowNonDevelopmentEnvironments = allowNonDevelopment };

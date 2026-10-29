@@ -20,7 +20,7 @@ Librería moderna, de alto rendimiento y compatible con **Native AOT** para inte
 
 * **Rendimiento y Native AOT:** Cero reflexión para JSON mediante `System.Text.Json` Source Generators. Preparada para contenedores mínimos y microservicios serverless.
 * **Criptografía estricta:** Diversificación de clave 3DES-CBC por número de pedido, firma HMAC-SHA256 y verificación en tiempo constante (`FixedTimeEquals`) para mitigar ataques de temporización.
-* **Bizum de primer nivel:** Soporte nativo para Bizum (`.WithBizum()`, `.WithCardOrBizum()`) y notificaciones con detección automática de pagos Bizum (`IsBizum`).
+* **Bizum de primer nivel:** Soporte nativo para Bizum (`.WithBizum()`, `.WithCard()`, `.WithAllPaymentMethods()`) y notificaciones con detección automática de pagos Bizum (`IsBizum`).
 * **Arquitectura dual:**
   * `.ToFormData()`: DTO limpio para aplicaciones desacopladas (React, Next.js, Vue, Blazor, apps móviles).
   * `.ToAutoSubmitHtml()`: Redirección automática accesible desde el servidor.
@@ -66,7 +66,7 @@ var redsys = builder.Services.AddBetterRedsys(options =>
         options.UseTest(
             fuc: "999008881",
             terminal: "1",
-            secretKey: "sq7HjrUOBfKmC576ILgskD5srURiUz6U"
+            secretKey: "sq7HjrUOBfKmC576ILgskD5srU870gJ7"
         )
         .WithWebhooks(
             notificationUrl: "/api/pagos/webhook",
@@ -117,7 +117,7 @@ app.MapPost("/api/checkout/crear-pago", (IRedsysClient redsysClient, PedidoDto p
     var formData = redsysClient
         .CreatePayment(order: pedido.NumeroPedido, amount: pedido.Importe)
         .WithDescription("Compra en tienda online")
-        .WithCardOrBizum()
+        .WithAllPaymentMethods()
         .ToFormData();
 
     return Results.Ok(formData);

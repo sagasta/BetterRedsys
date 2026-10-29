@@ -1,4 +1,5 @@
 using BetterRedsys.Cryptography;
+using BetterRedsys.Testing;
 
 namespace BetterRedsys.Tests;
 
@@ -7,8 +8,8 @@ public class RedsysCryptoTests
     private readonly RedsysCryptoService _cryptoService = new();
 
     // Clave de prueba típica de Redsys Sandbox (16 bytes en Base64)
-    // 16 bytes: "sq7HjrUOBfKmC576ILgskD5srURiUz6U" -> Base64
-    private const string TestSecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U";
+    // 24-byte 3DES key, Base64 encoded (public Redsys test terminal 999008881-1)
+    private const string TestSecretKey = RedsysTestCredentials.SecretKey;
 
     [Fact]
     public void DiversifyKey_WithValidOrder_ProducesExactBytes()

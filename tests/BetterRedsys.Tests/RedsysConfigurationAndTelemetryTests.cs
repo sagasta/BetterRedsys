@@ -6,6 +6,7 @@ using BetterRedsys.Diagnostics;
 using BetterRedsys.Models;
 using BetterRedsys.Services;
 using BetterRedsys.Simulator;
+using BetterRedsys.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -15,7 +16,7 @@ namespace BetterRedsys.Tests;
 
 public class RedsysConfigurationAndTelemetryTests
 {
-    private const string SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U";
+    private const string SecretKey = RedsysTestCredentials.SecretKey;
 
     [Fact]
     public void RedsysOptions_FluentMethods_ConfigureExpectedProperties()

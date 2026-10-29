@@ -1,6 +1,7 @@
 using System.Net;
 using BetterRedsys.Configuration;
 using BetterRedsys.HealthChecks;
+using BetterRedsys.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
@@ -20,7 +21,7 @@ public class RedsysHealthCheckTests
         {
             Fuc = "999008881",
             Terminal = "1",
-            SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
+            SecretKey = RedsysTestCredentials.SecretKey,
             CustomGatewayUrl = "https://mock.redsys.es/pay"
         };
 
@@ -42,7 +43,7 @@ public class RedsysHealthCheckTests
         {
             Fuc = "999008881",
             Terminal = "1",
-            SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
+            SecretKey = RedsysTestCredentials.SecretKey,
             CustomGatewayUrl = "https://mock.redsys.es/pay"
         };
 
@@ -64,7 +65,7 @@ public class RedsysHealthCheckTests
         {
             Fuc = "999008881",
             Terminal = "1",
-            SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
+            SecretKey = RedsysTestCredentials.SecretKey,
             CustomGatewayUrl = "https://unreachable.invalid/pay"
         };
 
@@ -83,7 +84,7 @@ public class RedsysHealthCheckTests
         {
             opt.Fuc = "999008881";
             opt.Terminal = "1";
-            opt.SecretKey = "sq7HjrUOBfKmC576ILgskD5srURiUz6U";
+            opt.SecretKey = RedsysTestCredentials.SecretKey;
         });
         services.AddHealthChecks().AddRedsys();
 

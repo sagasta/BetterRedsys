@@ -16,7 +16,7 @@ app.MapPost("/api/checkout/crear-pago", (IRedsysClient redsysClient, PedidoDto p
     var formData = redsysClient
         .CreatePayment(order: pedido.NumeroPedido, amount: pedido.Importe)
         .WithDescription("Compra en tienda online")
-        .WithCardOrBizum() // Muestra todos los métodos activos en el terminal (Tarjeta y Bizum)
+        .WithAllPaymentMethods() // Muestra todos los métodos activos en el terminal
         .WithSuccessUrl($"/pedido-exitoso?order={pedido.NumeroPedido}")
         .WithCancelUrl($"/pedido-cancelado?order={pedido.NumeroPedido}")
         .ToFormData();
@@ -64,7 +64,7 @@ app.MapGet("/checkout/pagar/{order}", (string order, IRedsysClient redsysClient)
 {
     var html = redsysClient
         .CreatePayment(order, 49.95m)
-        .WithCardOrBizum()
+        .WithAllPaymentMethods()
         .WithDescription("Auriculares Inalámbricos")
         .ToAutoSubmitHtml();
 
@@ -95,10 +95,24 @@ La propia página de Bizum pide el número de móvil al cliente, así que no hac
 |---|---|---|
 | `.WithBizum()` | `z` | Solo Bizum |
 | `.WithCard()` | `C` | Solo tarjeta |
-| `.WithCardOrBizum()` / `.WithAllPaymentMethods()` | *(no se envía)* | Todos los métodos activos en el terminal |
+| `.WithAllPaymentMethods()` | *(no se envía)* | Todos los métodos activos en el terminal |
+
+### Ofrecer tarjeta y Bizum a la vez
+
+Redsys no tiene ningún valor de `DS_MERCHANT_PAYMETHODS` que muestre solo tarjeta y Bizum. Cualquier valor que contenga `z` (`zC`, `Cz`, `z,T`…) envía directamente a Bizum, y que Bizum aparezca en el selector de `.WithAllPaymentMethods()` depende de cómo tengas configurado el terminal.
+
+La forma fiable es que el cliente elija el método en tu web y generar el pago según lo que elija:
+
+```csharp
+var builder = redsysClient.CreatePayment(pedido.NumeroPedido, pedido.Importe);
+
+var formData = (pedido.MetodoPago == "bizum" ? builder.WithBizum() : builder.WithCard())
+    .WithDescription("Compra en tienda online")
+    .ToFormData();
+```
 
 > [!NOTE]
-> Redsys no documenta un valor que combine tarjeta y Bizum, por lo que `.WithCardOrBizum()` no restringe los métodos: el cliente verá todos los que tenga habilitados tu terminal.
+> `.WithCardOrBizum()` está obsoleto desde la versión 2.0.1. En la 1.x enviaba `"z,T"`, que en la práctica llevaba solo a Bizum. En la 2.0.0 equivale a `.WithAllPaymentMethods()`.
 
 ### Teléfono del cliente (Paygold)
 

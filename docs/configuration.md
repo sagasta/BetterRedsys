@@ -31,7 +31,7 @@ Es la forma más limpia y segura, ya que evita escribir claves o URLs bancarias 
     "Environment": "Test",
     "Fuc": "999008881",
     "Terminal": "1",
-    "SecretKey": "sq7HjrUOBfKmC576ILgskD5srURiUz6U",
+    "SecretKey": "sq7HjrUOBfKmC576ILgskD5srU870gJ7",
     "Currency": "978",
     "MerchantUrl": "/api/pagos/webhook",
     "UrlOk": "/pedido-exitoso",
@@ -91,7 +91,7 @@ var redsys = builder.Services.AddBetterRedsys(options =>
         options.UseTest(
             fuc: "999008881",
             terminal: "1",
-            secretKey: "sq7HjrUOBfKmC576ILgskD5srURiUz6U"
+            secretKey: "sq7HjrUOBfKmC576ILgskD5srU870gJ7"
         )
         .WithEuros()
         .WithWebhooks(
