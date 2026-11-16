@@ -160,6 +160,17 @@ public sealed class RedsysOptions
     }
 
     /// <summary>
+    /// Configures the active currency using a strongly-typed <see cref="RedsysCurrency"/>.
+    /// </summary>
+    /// <param name="currency">The currency enabled on the terminal.</param>
+    /// <returns>This options instance for fluent chaining.</returns>
+    public RedsysOptions WithCurrency(RedsysCurrency currency)
+    {
+        Currency = currency.ToIsoCode();
+        return this;
+    }
+
+    /// <summary>
     /// Configures the default consumer language.
     /// </summary>
     /// <param name="language">The default language.</param>

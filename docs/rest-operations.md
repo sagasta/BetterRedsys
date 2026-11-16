@@ -122,7 +122,15 @@ Tipos de COF soportados en `RedsysCofType`:
 
 ## 4. Confirmación y Anulación de Preautorizaciones
 
-Para comercios que retienen el saldo al inicio y confirman el cargo una vez enviado el pedido:
+Para comercios que retienen el saldo al inicio y confirman el cargo una vez enviado el pedido.
+
+### Crear la preautorización (pago con redirección):
+```csharp
+var formData = redsysClient
+    .CreatePayment(order: "2026102201", amount: 45.00m)
+    .WithTransactionType(RedsysTransactionType.Preauthorization)
+    .ToFormData();
+```
 
 ### Confirmar Preautorización:
 ```csharp

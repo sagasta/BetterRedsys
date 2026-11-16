@@ -203,6 +203,16 @@ public sealed class RedsysPaymentBuilder
     }
 
     /// <summary>
+    /// Overrides the transaction type using a strongly-typed <see cref="RedsysTransactionType"/>
+    /// (e.g. <see cref="RedsysTransactionType.Preauthorization"/> to hold funds without charging them).
+    /// </summary>
+    public RedsysPaymentBuilder WithTransactionType(RedsysTransactionType transactionType)
+    {
+        _transactionType = transactionType.ToRedsysCode();
+        return this;
+    }
+
+    /// <summary>
     /// Overrides the merchant terminal for this specific transaction.
     /// </summary>
     public RedsysPaymentBuilder WithTerminal(string terminal)
@@ -217,6 +227,15 @@ public sealed class RedsysPaymentBuilder
     public RedsysPaymentBuilder WithCurrency(string currency)
     {
         _currency = currency;
+        return this;
+    }
+
+    /// <summary>
+    /// Overrides the currency using a strongly-typed <see cref="RedsysCurrency"/>.
+    /// </summary>
+    public RedsysPaymentBuilder WithCurrency(RedsysCurrency currency)
+    {
+        _currency = currency.ToIsoCode();
         return this;
     }
 

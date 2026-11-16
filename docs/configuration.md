@@ -140,7 +140,7 @@ app.Run();
 * `options.UseTest(fuc, terminal, secretKey)`: Establece automáticamente la pasarela oficial de pruebas (`https://sis-t.redsys.es:25443/sis/realizarPago` y endpoint REST de pruebas).
 * `options.UseProduction(fuc, terminal, secretKey)`: Establece la pasarela oficial de producción segura de Redsys (`https://sis.redsys.es/sis/realizarPago` y endpoint REST de producción).
 * `options.WithEuros()`: Configura la moneda estándar Euro (`978`).
-* `options.WithCurrency("840")`: Configura una moneda personalizada (ej: Dólar estadounidense).
+* `options.WithCurrency(RedsysCurrency.USD)`: Configura otra moneda habilitada en el terminal con un tipo fuerte (equivale a `options.WithCurrency("840")`).
 * `options.WithWebhooks(notificationUrl, okUrl, koUrl)`: Configura las tres URLs clave del ciclo de compra.
 * `options.WithDefaultLanguage(RedsysLanguage.Spanish)`: Idioma predeterminado para la pasarela bancaria.
 
