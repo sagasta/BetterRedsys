@@ -7,7 +7,7 @@ Thank you for your interest in contributing to **BetterRedsys**! We welcome cont
 ## 🛠️ Development Setup
 
 ### Prerequisites
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) or higher.
+- [.NET 11 SDK](https://dotnet.microsoft.com/download/dotnet/11.0) or higher (the libraries target both .NET 10 and .NET 11). Running the tests on both frameworks also requires the .NET 10 runtime.
 - Visual Studio 2022 / 2026, JetBrains Rider, or VS Code with C# Dev Kit.
 
 ### Clone and Build
@@ -34,7 +34,7 @@ dotnet test tests/BetterRedsys.Tests/BetterRedsys.Tests.csproj -c Release
 
 1. **Native AOT Compatibility**: BetterRedsys is Native AOT-ready. Avoid reflection or runtime type emission. All JSON serialization must use compile-time source-generated `JsonSerializerContext`.
 2. **Security & Cryptography**: Keep cryptographic operations constant-time (`CryptographicOperations.FixedTimeEquals`). Do not alter 3DES diversification padding rules without verifying against official Redsys test vectors.
-3. **Idiomatic .NET 10 & C# 13/14**: Use primary constructors, file-scoped namespaces, pattern matching, and target-typed `new()`.
+3. **Idiomatic modern .NET & C#**: Use primary constructors, file-scoped namespaces, pattern matching, and target-typed `new()`.
 4. **Documentation**: Keep public APIs XML-documented (`<summary>`, `<param>`, `<returns>`).
 
 ---

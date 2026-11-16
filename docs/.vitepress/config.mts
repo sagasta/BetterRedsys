@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress';
 
 export default defineConfig({
   title: 'BetterRedsys',
-  description: 'Documentación oficial de BetterRedsys - Pasarela de pago Redsys y Bizum para .NET 10 y ASP.NET Core',
+  description: 'Documentación oficial de BetterRedsys - Pasarela de pago Redsys y Bizum para .NET 10, .NET 11 y ASP.NET Core',
   base: '/BetterRedsys/',
   lang: 'es-ES',
   head: [

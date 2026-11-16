@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: "BetterRedsys"
-  text: "Pasarela Redsys y Bizum moderna para .NET 10"
+  text: "Pasarela Redsys y Bizum moderna para .NET 10 y .NET 11"
   tagline: "Fuertemente tipada, Native AOT, criptografía estricta en tiempo constante y simulador bancario local en memoria."
   image:
     src: /icon.png
@@ -22,7 +22,7 @@ hero:
 features:
   - icon: 🚀
     title: Rendimiento y Native AOT
-    details: Cero reflexión para JSON mediante Source Generators de System.Text.Json. Diseñado para contenedores mínimos y microservicios serverless en .NET 10.
+    details: Cero reflexión para JSON mediante Source Generators de System.Text.Json. Diseñado para contenedores mínimos y microservicios serverless en .NET 10 y .NET 11.
   - icon: 🔒
     title: Criptografía Estricta
     details: Diversificación de clave 3DES-CBC por número de pedido, firma HMAC-SHA256 y comparación en tiempo constante para mitigar ataques de temporización.

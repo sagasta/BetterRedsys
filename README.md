@@ -7,12 +7,12 @@
 [![CI](https://github.com/sagasta/BetterRedsys/actions/workflows/ci.yml/badge.svg)](https://github.com/sagasta/BetterRedsys/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://sagasta.github.io/BetterRedsys/)
 [![NuGet](https://img.shields.io/nuget/v/BetterRedsys.svg)](https://www.nuget.org/packages/BetterRedsys/)
-[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/)
+[![.NET](https://img.shields.io/badge/.NET-10.0%20%7C%2011.0-512BD4)](https://dotnet.microsoft.com/)
 [![Native AOT](https://img.shields.io/badge/Native%20AOT-Ready-brightgreen)](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-orange?logo=buy-me-a-coffee&logoColor=white)](https://buymeacoffee.com/sagasta)
 
-Librería moderna, de alto rendimiento y compatible con **Native AOT** para integrar la pasarela de pagos **Redsys y Bizum** en **ASP.NET Core** y **.NET 10** (C# 13/14).
+Librería moderna, de alto rendimiento y compatible con **Native AOT** para integrar la pasarela de pagos **Redsys y Bizum** en **ASP.NET Core** con **.NET 10** y **.NET 11**.
 
 ---
 

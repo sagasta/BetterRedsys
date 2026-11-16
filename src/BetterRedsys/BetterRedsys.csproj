@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
@@ -10,8 +10,8 @@
 
     <!-- NuGet Metadata -->
     <PackageId>BetterRedsys</PackageId>
-    <Title>BetterRedsys - Modern Redsys &amp; Bizum Payment Gateway for .NET 10 and ASP.NET Core</Title>
-    <Description>Modern, strongly-typed, high-performance, and Native AOT library for Redsys and Bizum payment gateway in ASP.NET Core and .NET 10. Designed for both traditional backends and decoupled architectures (React, Next.js, Blazor, Vue, Mobile). Librería moderna de pagos Redsys y Bizum.</Description>
+    <Title>BetterRedsys - Modern Redsys &amp; Bizum Payment Gateway for .NET 10, .NET 11 and ASP.NET Core</Title>
+    <Description>Modern, strongly-typed, high-performance, and Native AOT library for Redsys and Bizum payment gateway in ASP.NET Core, .NET 10 and .NET 11. Designed for both traditional backends and decoupled architectures (React, Next.js, Blazor, Vue, Mobile). Librería moderna de pagos Redsys y Bizum.</Description>
     <PackageTags>redsys;bizum;tpv;pagos;payments;payment-gateway;csharp;dotnet;aspnetcore;tpv-virtual;aot</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     
